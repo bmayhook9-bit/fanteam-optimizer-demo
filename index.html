@@ -298,6 +298,7 @@ function generateDemoData(){ return { players:[], tournament:'', eventName:'', c
 const esc = (s='') => s.replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[c]));
 const toNumber = v => { if(typeof v!== 'string') return +v||0; const cleaned = v.replace(/[^0-9.\-]/g,''); return parseFloat(cleaned)||0; };
 const norm = s => (s||'').toLowerCase().replace(/[_\s]/g,'');
+const shuffle = a => { for(let i=a.length-1;i>0;i--){ const j=Math.random()*(i+1)|0; [a[i],a[j]]=[a[j],a[i]]; } return a; };
 
 // ---- Robust column + name helpers ----
 function pickColumns(headers){
@@ -580,7 +581,7 @@ function generateLineupsMaxSpend(){
   const tryBuild = (cap) => {
     const base=[]; let total=0;
     if(cap){ base.push(cap); total+=cap.salary; }
-    const others = pool.filter(p=>!cap || p.id!==cap.id);
+    const others = shuffle(pool.filter(p=>!cap || p.id!==cap.id));
 
     for (const p of others){
       if (base.length>=cfg.lineupSize) break;
@@ -625,11 +626,9 @@ function generateLineupsMaxSpend(){
   };
 
   let round=0;
-  while (out.length<N && round<N*4){
-    for (const cap of caps){
-      if (out.length>=N) break;
-      tryBuild(cap);
-    }
+  while (out.length<N && round<N*10){
+    const cap = caps[Math.floor(Math.random()*caps.length)];
+    tryBuild(cap);
     round++;
   }
 
@@ -700,6 +699,12 @@ document.getElementById('demoBtn').addEventListener('click', async () => {
 });
 
 document.getElementById('backToUpload').addEventListener('click',()=>setStep(1));
+const optFull=document.getElementById('optFull');
+const optShow=document.getElementById('optShow');
+function syncContestSelection(){
+  [optFull,optShow].forEach(x=>x.classList.remove('selected'));
+  (state.contestType==='showdown'?optShow:optFull).classList.add('selected');
+}
 document.getElementById('confirmSport').addEventListener('click', async () => {
   try {
     state.detectedSport = document.getElementById('sportSelector').value;
@@ -710,17 +715,18 @@ document.getElementById('confirmSport').addEventListener('click', async () => {
         const demo = await loadDemoCsv(key);
         state.players = demo.players;
         state.contestType = demo.contest;
+        state.currentDemoSport = demo.sport;
         state.datasetMeta = { tournament: demo.tournament, eventName: demo.eventName };
         updateDetection();
       }
     }
+    syncContestSelection();
     setStep(3);
   } catch (err) { showToast(err.message, 'error'); }
 });
 document.getElementById('backToSport').addEventListener('click',()=>setStep(2));
 
 // Contest selection
-const optFull=document.getElementById('optFull'); const optShow=document.getElementById('optShow');
 [optFull,optShow].forEach(el=> el.addEventListener('click',()=>{ [optFull,optShow].forEach(x=>x.classList.remove('selected')); el.classList.add('selected'); state.contestType = el.dataset.type; }));
 document.getElementById('confirmContest').addEventListener('click',()=>{
   const cfg = SPORT_CONFIGS[state.detectedSport];
