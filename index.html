@@ -204,13 +204,20 @@ hr.sep{border:none;border-top:1px solid #1b2131;margin:12px 0}
       <input id="searchPlayers" type="text" placeholder="Search by name..." style="max-width:180px" />
       <select id="positionFilter" style="max-width:120px"><option value="">All positions</option></select>
       <select id="teamFilter" style="max-width:120px"><option value="">All teams</option></select>
+      <select id="salarySort" style="max-width:130px">
+        <option value="">Sort salary</option>
+        <option value="asc">Salary ↑</option>
+        <option value="desc">Salary ↓</option>
+      </select>
     </div>
     <div class="btn-group" style="margin-bottom:8px">
       <button class="btn" id="selectAll">Select all</button>
       <button class="btn" id="selectNone">Clear all</button>
       <button class="btn" id="selectExpected">Expected only</button>
       <button class="btn" id="captainAll">Captain all</button>
+      <button class="btn" id="importProj">Import projections</button>
     </div>
+    <input type="file" id="projInput" accept=".csv" hidden />
 
     <div class="scroller">
       <table class="table">
@@ -221,6 +228,7 @@ hr.sep{border:none;border-top:1px solid #1b2131;margin:12px 0}
             <th>Player</th>
             <th>Pos</th>
             <th>Team</th>
+            <th>Proj</th>
             <th>Salary</th>
             <th>Status</th>
           </tr>
@@ -279,7 +287,7 @@ const SPORT_CONFIGS = {
   f1:{ name:'Formula 1', icon:'🏎️', lineupSize:6, positions:['DRIVER','CONSTRUCTOR'], salaryRange:[98,102], currency:'£', fullSlateSize:34, showdownSize:34 }
 };
 
-const state = { currentStep:1, players:[], lineups:[], detectedSport:'nfl', contestType:'full-slate', currentDemoSport:'nfl', datasetMeta:{ tournament:'', eventName:'' }, isDemo:false };
+const state = { currentStep:1, players:[], lineups:[], detectedSport:'nfl', contestType:'full-slate', currentDemoSport:'nfl', datasetMeta:{ tournament:'', eventName:'' }, isDemo:false, statusFilter:'' };
 
 // -------------------- (Optional legacy synthetic demo, unused) --------------------
 // retained for future offline fallback
@@ -408,6 +416,29 @@ async function importCSV(file){
   if(!players.length) throw new Error('No valid players found');
   return players;
 }
+
+async function importProjections(file){
+  try {
+    const text = await file.text();
+    const rows = parseCSV(text);
+    if(rows.length<2) throw new Error('Projection CSV needs header and data');
+    const headers = rows[0].map(h=>norm(h));
+    const nameIdx = headers.findIndex(h=>['playername','fullname','full_name','player','name'].some(k=>h.includes(k)));
+    const projIdx = headers.findIndex(h=>['projection','proj','points','fpts','score'].some(k=>h.includes(k)));
+    if(nameIdx===-1 || projIdx===-1) throw new Error('Projection CSV missing name or projection column');
+    let matched=0;
+    for(let i=1;i<rows.length;i++){
+      const name=(rows[i][nameIdx]||'').trim();
+      const proj=toNumber(rows[i][projIdx]);
+      const p=state.players.find(pl=>pl.name.toLowerCase()===name.toLowerCase());
+      if(p){ p.projection=proj; matched++; }
+    }
+    showToast(`Loaded projections for ${matched} players`,'success');
+    renderPlayers();
+  } catch(err){
+    showToast(err.message,'error');
+  }
+}
 // Load a demo CSV by KEY (uses same pipeline as uploads)
 async function loadDemoCsv(key){
   state.isDemo = true;
@@ -460,18 +491,26 @@ function deriveFilters(){
   teamSel.innerHTML = '<option value="">All teams</option>';
   const teams=[...new Set(state.players.map(p=>p.team).filter(Boolean))].sort();
   teams.forEach(team=>{ const o=document.createElement('option'); o.value=team; o.textContent=team; teamSel.appendChild(o); });
+  document.getElementById('salarySort').value='';
+  state.statusFilter='';
 }
 
 function filteredPlayers(){
   const q=document.getElementById('searchPlayers').value.toLowerCase();
   const pf=document.getElementById('positionFilter').value;
   const tf=document.getElementById('teamFilter').value;
-  return state.players.filter(p=>{
+  const sf=document.getElementById('salarySort').value;
+  const status=state.statusFilter;
+  let arr = state.players.filter(p=>{
     const s=!q || p.name.toLowerCase().includes(q);
     const m=!pf || p.position===pf;
     const t=!tf || p.team===tf;
-    return s && m && t;
+    const st=!status || p.status===status;
+    return s && m && t && st;
   });
+  if(sf==='asc') arr.sort((a,b)=>a.salary-b.salary);
+  else if(sf==='desc') arr.sort((a,b)=>b.salary-a.salary);
+  return arr;
 }
 
 function renderPlayers(){ const cfg = SPORT_CONFIGS[state.detectedSport]; const body=document.getElementById('playerTableBody'); body.innerHTML = filteredPlayers().map(p=>{ const rowClass = p.status==='expected'? 'row-expected' : (p.status==='possible'? 'row-possible' : 'row-unexpected'); return `<tr class="${rowClass}">
@@ -480,6 +519,7 @@ function renderPlayers(){ const cfg = SPORT_CONFIGS[state.detectedSport]; const 
   <td>${esc(p.name)}</td>
   <td>${esc(p.position)}</td>
   <td>${esc(p.team||'')}</td>
+  <td>${p.projection!=null ? p.projection.toFixed(2) : ''}</td>
   <td>${cfg.currency}${p.salary}</td>
   <td><span class="helper" style="color:${p.status==='expected'?'#2fe089':p.status==='possible'?'#ffb86c':'#ff6b6b'}">${p.status}</span></td>
 </tr>`; }).join(''); }
@@ -708,15 +748,19 @@ document.getElementById('generateBtn').addEventListener('click', () => {
 });
 
 // Player controls
-document.getElementById('selectAll').addEventListener('click',()=>{ state.players.forEach(p=>p.selected=true); updateStats(); renderPlayers(); });
-document.getElementById('selectNone').addEventListener('click',()=>{ state.players.forEach(p=>{ p.selected=false; p.captain=false; }); updateStats(); renderPlayers(); });
-document.getElementById('selectExpected').addEventListener('click',()=>{ state.players.forEach(p=>{ p.selected = (p.status==='expected'); if(!p.selected) p.captain=false; }); updateStats(); renderPlayers(); });
+document.getElementById('selectAll').addEventListener('click',()=>{ state.players.forEach(p=>p.selected=true); state.statusFilter=''; updateStats(); renderPlayers(); });
+document.getElementById('selectNone').addEventListener('click',()=>{ state.players.forEach(p=>{ p.selected=false; p.captain=false; }); state.statusFilter=''; updateStats(); renderPlayers(); });
+document.getElementById('selectExpected').addEventListener('click',()=>{ state.players.forEach(p=>{ p.selected = (p.status==='expected'); if(!p.selected) p.captain=false; }); state.statusFilter='expected'; updateStats(); renderPlayers(); });
 document.getElementById('captainAll').addEventListener('click',()=>{ if(!usesCaptains(state.detectedSport, state.contestType)) return; state.players.filter(p=>p.selected).forEach(p=>p.captain=true); updateStats(); renderPlayers(); });
 document.getElementById('clearResults').addEventListener('click',()=>{ state.lineups=[]; renderLineups(); });
 document.getElementById('startOver').addEventListener('click',()=>{ state.players=[]; state.lineups=[]; state.currentDemoSport='nfl'; state.datasetMeta={tournament:'',eventName:''}; state.isDemo=false; document.getElementById('downloadBtn').setAttribute('disabled',''); uploadZone.classList.remove('has-file'); setStep(1); });
 document.getElementById('searchPlayers').addEventListener('input',renderPlayers);
 document.getElementById('positionFilter').addEventListener('change',renderPlayers);
 document.getElementById('teamFilter').addEventListener('change',renderPlayers);
+document.getElementById('salarySort').addEventListener('change',renderPlayers);
+
+document.getElementById('importProj').addEventListener('click',()=> document.getElementById('projInput').click());
+document.getElementById('projInput').addEventListener('change',e=>{ if(e.target.files.length) importProjections(e.target.files[0]); });
 
 // Expose for checkboxes
 window.toggleSelected = id => { const p=state.players.find(x=>x.id===id); if(!p) return; p.selected=!p.selected; if(!p.selected) p.captain=false; updateStats(); renderPlayers(); };
