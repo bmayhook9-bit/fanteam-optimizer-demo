@@ -677,7 +677,15 @@ document.getElementById('confirmContest').addEventListener('click',()=>{
 });
 
 // Generate
-document.getElementById('generateBtn').addEventListener('click',()=>{   try{     state.lineups = generateLineupsMaxSpend();   // ← use max-spend     renderLineups();     showToast(`Generated ${state.lineups.length} lineups!`,'success');   } catch(err){     showToast(err.message,'error');   } });
+document.getElementById('generateBtn').addEventListener('click', () => {
+  try {
+    state.lineups = generateLineupsMaxSpend(); // ← use max-spend
+    renderLineups();
+    showToast(`Generated ${state.lineups.length} lineups!`, 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+});
 
 // Player controls
 document.getElementById('selectAll').addEventListener('click',()=>{ state.players.forEach(p=>p.selected=true); updateStats(); renderPlayers(); });
