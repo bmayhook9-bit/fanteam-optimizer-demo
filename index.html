@@ -621,12 +621,22 @@ function setDynamicCapDefaults(){
 }
 
 // -------------------- EVENTS --------------------
-const uploadZone = document.getElementById('uploadZone'); const fileInput = document.getElementById('fileInput');
-uploadZone.addEventListener('click',()=>fileInput.click());
-uploadZone.addEventListener('dragover',e=>{e.preventDefault(); uploadZone.classList.add('dragover');});
-uploadZone.addEventListener('dragleave',()=>uploadZone.classList.remove('dragover'));
-uploadZone.addEventListener('drop',e=>{ e.preventDefault(); uploadZone.classList.remove('dragover'); const f=e.dataTransfer.files; if(f.length) processFile(f[0]); });
-fileInput.addEventListener('change',e=>{ if(e.target.files.length) processFile(e.target.files[0]); });
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+// Click or drag-drop to trigger file selection
+uploadZone.addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', async e => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) await processFile(file);
+});
+fileInput.addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (file) await processFile(file);
+});
 
 // Parse uploaded CSV and exit demo mode
 async function processFile(file) {
