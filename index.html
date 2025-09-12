@@ -278,7 +278,7 @@ const SPORT_CONFIGS = {
   f1:{ name:'Formula 1', icon:'🏎️', lineupSize:6, positions:['DRIVER','CONSTRUCTOR'], salaryRange:[98,102], currency:'£', fullSlateSize:34, showdownSize:34 }
 };
 
-const state = { currentStep:1, players:[], lineups:[], detectedSport:'nfl', contestType:'full-slate', currentDemoSport:'nfl', datasetMeta:{ tournament:'', eventName:'' } };
+const state = { currentStep:1, players:[], lineups:[], detectedSport:'nfl', contestType:'full-slate', currentDemoSport:'nfl', datasetMeta:{ tournament:'', eventName:'' }, isDemo:false };
 
 // -------------------- (Optional legacy synthetic demo, unused) --------------------
 // retained for future offline fallback
@@ -406,6 +406,7 @@ async function importCSV(file){
  main
 // Load a demo CSV by KEY (uses same pipeline as uploads)
 async function loadDemoCsv(key){
+  state.isDemo = true;
   const preset = DEMO_CSVS[key];
   if(!preset) throw new Error(`Unknown demo key: ${key}`);
   const res = await fetch(preset.url);
@@ -616,7 +617,7 @@ uploadZone.addEventListener('dragleave',()=>uploadZone.classList.remove('dragove
 uploadZone.addEventListener('drop',e=>{ e.preventDefault(); uploadZone.classList.remove('dragover'); const f=e.dataTransfer.files; if(f.length) processFile(f[0]); });
 fileInput.addEventListener('change',e=>{ if(e.target.files.length) processFile(e.target.files[0]); });
 
-async function processFile(file){ try{ const players = await importCSV(file); state.players = players; state.detectedSport = detectSportFromCSV(players); state.datasetMeta = { tournament: file.name.replace(/\.csv$/i,''), eventName: 'Imported CSV' }; uploadZone.classList.add('has-file'); showToast(`Loaded ${players.length} players`,`success`); updateDetection(); setStep(2); }
+async function processFile(file){ try{ const players = await importCSV(file); state.players = players; state.detectedSport = detectSportFromCSV(players); state.datasetMeta = { tournament: file.name.replace(/\.csv$/i,''), eventName: 'Imported CSV' }; state.isDemo=false; uploadZone.classList.add('has-file'); showToast(`Loaded ${players.length} players`,`success`); updateDetection(); setStep(2); }
 catch(err){ showToast(err.message,'error'); } }
 
 // Demo cycle (uses KEY rotation) — FIXED: single declaration of DEMO_ROTATION & demoIndex
@@ -641,8 +642,7 @@ document.getElementById('backToUpload').addEventListener('click',()=>setStep(1))
 document.getElementById('confirmSport').addEventListener('click', async () => {
   try {
     state.detectedSport = document.getElementById('sportSelector').value;
-    const isDemo = state.players && state.players.length && (state.players[0].id?.startsWith('p_') || state.players[0].id?.startsWith('demo_'));
-    if (isDemo) {
+    if (state.isDemo) {
       const desired = state.contestType;
       const key = demoKeyFor(state.detectedSport, desired) || demoKeyFor(state.detectedSport, 'full-slate');
       if (key) {
@@ -684,7 +684,7 @@ document.getElementById('selectNone').addEventListener('click',()=>{ state.playe
 document.getElementById('selectExpected').addEventListener('click',()=>{ state.players.forEach(p=>{ p.selected = (p.status==='expected'); if(!p.selected) p.captain=false; }); updateStats(); renderPlayers(); });
 document.getElementById('captainAll').addEventListener('click',()=>{ if(!usesCaptains(state.detectedSport, state.contestType)) return; state.players.filter(p=>p.selected).forEach(p=>p.captain=true); updateStats(); renderPlayers(); });
 document.getElementById('clearResults').addEventListener('click',()=>{ state.lineups=[]; renderLineups(); });
-document.getElementById('startOver').addEventListener('click',()=>{ state.players=[]; state.lineups=[]; state.currentDemoSport='nfl'; state.datasetMeta={tournament:'',eventName:''}; document.getElementById('downloadBtn').setAttribute('disabled',''); uploadZone.classList.remove('has-file'); setStep(1); });
+document.getElementById('startOver').addEventListener('click',()=>{ state.players=[]; state.lineups=[]; state.currentDemoSport='nfl'; state.datasetMeta={tournament:'',eventName:''}; state.isDemo=false; document.getElementById('downloadBtn').setAttribute('disabled',''); uploadZone.classList.remove('has-file'); setStep(1); });
 document.getElementById('searchPlayers').addEventListener('input',renderPlayers);
 document.getElementById('positionFilter').addEventListener('change',renderPlayers);
 
