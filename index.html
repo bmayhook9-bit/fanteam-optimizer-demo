@@ -630,6 +630,7 @@ async function processFile(file) {
       eventName: 'Imported CSV'
     };
     state.isDemo = false;
+
     uploadZone.classList.add('has-file');
     showToast(`Loaded ${players.length} players`, `success`);
     updateDetection();
