@@ -81,14 +81,14 @@ hr.sep{border:none;border-top:1px solid #1b2131;margin:12px 0}
 <div class="container">
   <!-- Progress -->
   <div class="progress-steps">
-    <div class="progress-step" id="ps1"><div class="step-number" id="sn1">1</div><span>Upload</span></div>
+    <div class="progress-step active" id="ps1"><div class="step-number active" id="sn1">1</div><span>Upload</span></div>
     <div class="progress-step" id="ps2"><div class="step-number" id="sn2">2</div><span>Confirm</span></div>
     <div class="progress-step" id="ps3"><div class="step-number" id="sn3">3</div><span>Contest</span></div>
     <div class="progress-step" id="ps4"><div class="step-number" id="sn4">4</div><span>Optimize</span></div>
   </div>
 
   <!-- Step 1: Upload -->
-  <section class="step" id="step1">
+  <section class="step active" id="step1">
     <h2>Upload your FanTeam export (CSV)</h2>
     <p class="helper">We’ll auto-detect sport & format. Supports NFL, Football, Golf, F1. The tool applies our validated NFL projection conversion methodology when projections are supplied (placeholder in this MVP).</p>
     <div class="upload-zone" id="uploadZone">
@@ -403,19 +403,6 @@ async function importCSV(file){
   return players;
 }
 
-  const posMap = { DEF:'DEFENDER', MID:'MIDFIELDER', FWD:'FORWARD', GK:'GOALKEEPER' };
-  const players=[]; for(let i=1;i<rows.length;i++){
-    const r = rows[i]; if(!r||!r.length) continue; const first = firstCol!==-1? (r[firstCol]||'').trim() : ''; const last = nameCol!==-1? (r[nameCol]||'').trim() : ''; const display = first && last? `${first} ${last}` : (last||first); if(!display) continue;
-    const salary = toNumber(r[salaryCol]); if(salary<=0) continue; const id = idCol!==-1? (r[idCol]||'').trim() : `p_${i}`; const team = teamCol!==-1? (r[teamCol]||'').trim() : '';
-    let position = posCol!==-1? (r[posCol]||'').trim().toUpperCase() : '';
-    position = posMap[position] || position;
-    let status = 'expected'; if(statusCol!==-1){ const sv = (r[statusCol]||'').toLowerCase(); if(sv.includes('possible')) status='possible'; else if(sv.includes('unexpected')||sv.includes('doubt')) status='unexpected'; }
-    players.push({ id, name:display, first, last, team, position, salary, status, selected: status==='expected', captain:false });
-  }
-  if(!players.length) throw new Error('No valid players found');
-  return players;
-}
-
 // Load a demo CSV by KEY (uses same pipeline as uploads)
 async function loadDemoCsv(key){
   const preset = DEMO_CSVS[key];
@@ -620,102 +607,6 @@ function setDynamicCapDefaults(){
   document.getElementById('maxSalary').value = max;
 }
 
-function generateLineupsMaxSpend(){
-  const cfg = SPORT_CONFIGS[state.detectedSport];
-  const withCap = usesCaptains(state.detectedSport, state.contestType);
-
-  const pool = state.players.filter(p=>p.selected).sort((a,b)=>b.salary-a.salary);
-  if (pool.length < cfg.lineupSize) {
-    throw new Error(`Need ≥ ${cfg.lineupSize} selected players; have ${pool.length}.`);
-  }
-
-  let caps=[];
-  if (withCap){
-    caps = pool.filter(p=>p.captain);
-    if (!caps.length) throw new Error('Need at least 1 captain candidate.');
-  } else {
-    caps = [null];
-  }
-
-  const N   = +document.getElementById('lineupCount').value || 20;
-  const min = +document.getElementById('minSalary').value;
-  const max = +document.getElementById('maxSalary').value;
-
-  const uniq = new Set();
-  const out  = [];
-
-  const tryBuild = (cap) => {
-    const base=[]; let total=0;
-    if (cap){ base.push(cap); total += cap.salary; }
-
-    const others = pool.filter(p=>!cap || p.id!==cap.id);
-
-    // Greedy fill with most expensive under cap
-    for (const p of others){
-      if (base.length >= cfg.lineupSize) break;
-      if (total + p.salary <= max){
-        base.push(p);
-        total += p.salary;
-      }
-    }
-
-    // If still short, fill with cheapest remaining just to reach size
-    if (base.length < cfg.lineupSize){
-      for (const p of others){
-        if (base.find(x=>x.id===p.id)) continue;
-        base.push(p);
-        total += p.salary;
-        if (base.length >= cfg.lineupSize) break;
-      }
-    }
-
-    // Improve by swapping cheapest out for a pricier one (if fits)
-    base.sort((a,b)=>b.salary-a.salary);
-    while (base.length > cfg.lineupSize){
-      const iMin = base.reduce((m,p,i)=> p.salary<base[m].salary ? i : m, 0);
-      total -= base[iMin].salary;
-      base.splice(iMin,1);
-    }
-    let improved = true, guard = 0;
-    while (improved && guard < 200){
-      improved = false; guard++;
-      const iMin = base.reduce((m,p,i)=> p.salary<base[m].salary ? i : m, 0);
-      const cheapest = base[iMin];
-      const cand = others.find(p =>
-        !base.find(x=>x.id===p.id) &&
-        (total - cheapest.salary + p.salary) <= max &&
-        p.salary > cheapest.salary
-      );
-      if (cand){
-        total = total - cheapest.salary + cand.salary;
-        base[iMin] = cand;
-        improved = true;
-      }
-    }
-
-    if (base.length === cfg.lineupSize && total >= min && total <= max){
-      const key = base.map(p=>p.id).sort().join('|') + (cap ? `|C:${cap.id}` : '');
-      if (!uniq.has(key)){
-        uniq.add(key);
-        out.push({ id: out.length+1, players: base, captain: cap, totalSalary: total });
-      }
-    }
-  };
-
-  let round = 0;
-  while (out.length < N && round < N*4){
-    for (const cap of caps){
-      if (out.length >= N) break;
-      tryBuild(cap);
-    }
-    round++;
-  }
-
-  if (!out.length) throw new Error('No valid lineups; lower Min or raise Max salary.');
-  return out;
-}
-
-  
 // -------------------- EVENTS --------------------
 const uploadZone = document.getElementById('uploadZone'); const fileInput = document.getElementById('fileInput');
 uploadZone.addEventListener('click',()=>fileInput.click());
@@ -810,7 +701,7 @@ window.toggleCaptain = id => { const p=state.players.find(x=>x.id===id); if(!p) 
 })();
 
 // init
-(function init(){ setStep(1); document.getElementById('ps1').classList.add('active'); document.getElementById('sn1').classList.add('active'); console.log('FanTeam DFS Optimizer — MVP v2 ready'); })();
+(function init(){ setStep(1); console.log('FanTeam DFS Optimizer — MVP v2 ready'); })();
 </script>
 </body>
 </html>
