@@ -580,9 +580,8 @@ function generateLineupsMaxSpend(){
 
 function setDynamicCapDefaults(){
   const cfg = SPORT_CONFIGS[state.detectedSport];
-  const pool = state.players.filter(p=>p.selected).length
-    ? state.players.filter(p=>p.selected)
-    : state.players;
+  const selected = state.players.filter(p=>p.selected);
+  const pool = selected.length >= cfg.lineupSize ? selected : state.players;
 
   const top = [...pool].sort((a,b)=>b.salary-a.salary).slice(0, cfg.lineupSize);
   const target = top.reduce((s,p)=>s+p.salary, 0);
