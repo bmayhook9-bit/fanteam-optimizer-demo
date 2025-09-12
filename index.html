@@ -203,6 +203,13 @@ hr.sep{border:none;border-top:1px solid #1b2131;margin:12px 0}
       <h3 style="margin:0;flex:1">👥 Player management</h3>
       <input id="searchPlayers" type="text" placeholder="Search by name..." style="max-width:180px" />
       <select id="positionFilter" style="max-width:120px"><option value="">All positions</option></select>
+      <select id="teamFilter" style="max-width:120px"><option value="">All teams</option></select>
+      <!-- Salary sort control -->
+      <select id="salarySort" style="max-width:140px">
+        <option value="">Sort salary</option>
+        <option value="asc">Low → High</option>
+        <option value="desc">High → Low</option>
+      </select>
     </div>
     <div class="btn-group" style="margin-bottom:8px">
       <button class="btn" id="selectAll">Select all</button>
@@ -258,12 +265,12 @@ hr.sep{border:none;border-top:1px solid #1b2131;margin:12px 0}
 
 // Real demo CSV datasets served from /demo (Vercel/static hosting)
 const DEMO_CSVS = {
-  nfl_full: { label:'NFL — Full slate', sport:'nfl', contest:'full-slate', tournament:'Tournament 1009899 (846 players)', eventName:'NFL Week 1 Full Slate', url:'./demo/1009899_players_20250908161603.csv' },
-  nfl_show: { label:'NFL — Showdown', sport:'nfl', contest:'showdown', tournament:'Tournament 1010808 (52 players)', eventName:'NFL Showdown (Single Game)', url:'./demo/1010808_players_20250908161619.csv' },
-  fb_full:  { label:'Football — CL full slate', sport:'football', contest:'full-slate', tournament:'Tournament 1008839 (414 players)', eventName:'Champions League Night', url:'./demo/1008839_players_20250906222543.csv' },
-  fb_show:  { label:'Football — Showdown', sport:'football', contest:'showdown', tournament:'Tournament 1008665 (30 players)', eventName:'Real Madrid vs Manchester City', url:'./demo/1008665_players_20250906172857.csv' },
-  f1_full:  { label:'F1 — Race weekend', sport:'f1', contest:'full-slate', tournament:'Tournament 1009037 (34 players)', eventName:'F1 Race Weekend', url:'./demo/1009037_players_20250908102649.csv' },
-  golf_full:{ label:'Golf — PGA tournament', sport:'golf', contest:'full-slate', tournament:'Tournament 1002987 (69 players)', eventName:'PGA Tournament', url:'./demo/1000000_players_20250815093906.csv' }
+  nfl_full: { label:'NFL — Full slate', sport:'nfl', contest:'full-slate', tournament:'Tournament 1008839 (413 players)', eventName:'NFL Example Slate', url:'./demo/1008839_players_20250906222543.csv' },
+  nfl_show: { label:'NFL — Showdown', sport:'nfl', contest:'showdown', tournament:'Tournament 1009037 (33 players)', eventName:'NFL Showdown (Single Game)', url:'./demo/1009037_players_20250908102649.csv' },
+  fb_full:  { label:'Football — Full slate', sport:'football', contest:'full-slate', tournament:'Tournament 1009899 (845 players)', eventName:'Champions League Night', url:'./demo/1009899_players_20250908161603.csv' },
+  fb_show:  { label:'Football — Showdown', sport:'football', contest:'showdown', tournament:'Tournament 1010808 (51 players)', eventName:'Football Showdown', url:'./demo/1010808_players_20250908161619.csv' },
+  f1_full:  { label:'F1 — Race weekend', sport:'f1', contest:'full-slate', tournament:'Tournament 1008665 (29 players)', eventName:'F1 Race Weekend', url:'./demo/1008665_players_20250906172857.csv' },
+  golf_full:{ label:'Golf — PGA tournament', sport:'golf', contest:'full-slate', tournament:'Tournament 1000000 (585 players)', eventName:'PGA Tournament', url:'./demo/1000000_players_20250815093906.csv' }
 };
 
 // Rotation order for the demo button (array of KEYS)
@@ -309,13 +316,17 @@ function buildDisplayName(row, cols){
   const d = cols.displayCol!==-1? (row[cols.displayCol]||'').trim() : '';
   const f = cols.firstCol!==-1?   (row[cols.firstCol]  ||'').trim() : '';
   const l = cols.lastCol!==-1?    (row[cols.lastCol]   ||'').trim() : '';
-  let name = d || (f && l ? `${f} ${l}` : (l || f));
+  let name = '';
+  if(f && d && !d.includes(' ')) name = `${f} ${d}`.trim();
+  else name = d || (f && l ? `${f} ${l}` : (l || f));
   if(!name || looksNumericish(name)){
     if(f && !looksNumericish(f)) name = f;
     if(l && !looksNumericish(l)) name = name ? `${name} ${l}` : l;
   }
   return (name||'').trim();
 }
+
+function shuffle(arr){ const a=[...arr]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
   
 function showToast(msg,type='success'){ const t=document.createElement('div'); t.className=`toast ${type}`; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000); }
 
@@ -358,14 +369,17 @@ function detectSportFromCSV(players){ if(!players||!players.length) return 'nfl'
   if(positions.some(p=>nfl.includes(p))){ state.contestType = n>100? 'full-slate':'showdown'; return 'nfl'; }
   const foot = ['defender','midfielder','forward','goalkeeper','gk','def','mid','fwd'];
   if(positions.some(p=>foot.includes(p))){ state.contestType = n>100? 'full-slate':'showdown'; return 'football'; }
-  const f1 = ['driver','constructor']; if(positions.some(p=>f1.includes(p)) || (n>=30 && n<=40)){ state.contestType='full-slate'; return 'f1'; }
+  const f1 = ['driver','constructor','ctor'];
+  if(positions.some(p=>f1.includes(p)) || (positions.every(p=>['player','ctor'].includes(p)) && n<=40)){
+    state.contestType='full-slate'; return 'f1';
+  }
   if(n>=60 && n<=80){ state.contestType='full-slate'; return 'golf'; }
   if(avgSalary>1000){ state.contestType = n>100? 'full-slate':'showdown'; return 'nfl'; }
   return 'football';
 }
 
 function rowsToPlayers(rows, cols){
-  const posMap = { DEF:'DEFENDER', MID:'MIDFIELDER', FWD:'FORWARD', GK:'GOALKEEPER' };
+  const posMap = { DEF:'DEFENDER', MID:'MIDFIELDER', FWD:'FORWARD', GK:'GOALKEEPER', PLAYER:'DRIVER', CTOR:'CONSTRUCTOR' };
   const players=[];
   for(let i=1;i<rows.length;i++){
     const r = rows[i]; if(!r||!r.length) continue;
@@ -407,8 +421,6 @@ async function importCSV(file){
   if(!players.length) throw new Error('No valid players found');
   return players;
 }
- codex/refactor-fanteam-dfs-optimizer
- main
 // Load a demo CSV by KEY (uses same pipeline as uploads)
 async function loadDemoCsv(key){
   state.isDemo = true;
@@ -451,11 +463,39 @@ function refreshCaptainButtons(){ const btn=document.getElementById('captainAll'
   const cfg = SPORT_CONFIGS[state.detectedSport]; const min=+document.getElementById('minSalary').value||cfg.salaryRange[0]; const max=+document.getElementById('maxSalary').value||cfg.salaryRange[1]; const ct = use? 'Captain required' : 'No captain'; document.getElementById('constraintsText').textContent = `${cfg.name} • ${state.contestType} • Lineup size ${cfg.lineupSize} • ${ct} • Salary ${cfg.currency}${min}–${cfg.currency}${max}`;
 }
 
-function derivePositionOptions(){ const sel=document.getElementById('positionFilter'); sel.innerHTML = '<option value="">All positions</option>'; const uniq=[...new Set(state.players.map(p=>p.position).filter(Boolean))].sort(); uniq.forEach(pos=>{ const o=document.createElement('option'); o.value=pos; o.textContent=pos; sel.appendChild(o); }); }
+function deriveFilters(){
+  const posSel=document.getElementById('positionFilter');
+  posSel.innerHTML = '<option value="">All positions</option>';
+  const positions=[...new Set(state.players.map(p=>p.position).filter(Boolean))].sort();
+  positions.forEach(pos=>{ const o=document.createElement('option'); o.value=pos; o.textContent=pos; posSel.appendChild(o); });
 
-function filteredPlayers(){ const q=document.getElementById('searchPlayers').value.toLowerCase(); const pf=document.getElementById('positionFilter').value; return state.players.filter(p=>{ const s=!q || p.name.toLowerCase().includes(q); const m=!pf || p.position===pf; return s&&m; }); }
+  const teamSel=document.getElementById('teamFilter');
+  teamSel.innerHTML = '<option value="">All teams</option>';
+  const teams=[...new Set(state.players.map(p=>p.team).filter(Boolean))].sort();
+  teams.forEach(team=>{ const o=document.createElement('option'); o.value=team; o.textContent=team; teamSel.appendChild(o); });
+}
 
-function renderPlayers(){ const cfg = SPORT_CONFIGS[state.detectedSport]; const body=document.getElementById('playerTableBody'); body.innerHTML = filteredPlayers().map(p=>{ const rowClass = p.status==='expected'? 'row-expected' : (p.status==='possible'? 'row-possible' : 'row-unexpected'); return `<tr class="${rowClass}">
+function filteredPlayers(){
+  const q=document.getElementById('searchPlayers').value.toLowerCase();
+  const pf=document.getElementById('positionFilter').value;
+  const tf=document.getElementById('teamFilter').value;
+  return state.players.filter(p=>{
+    const s=!q || p.name.toLowerCase().includes(q);
+    const m=!pf || p.position===pf;
+    const t=!tf || p.team===tf;
+    return s && m && t;
+  });
+}
+
+function sortedPlayers(){
+  const sort=document.getElementById('salarySort').value;
+  const players=filteredPlayers().slice();
+  if(sort==='asc') players.sort((a,b)=>a.salary-b.salary);
+  else if(sort==='desc') players.sort((a,b)=>b.salary-a.salary);
+  return players;
+}
+
+function renderPlayers(){ const cfg = SPORT_CONFIGS[state.detectedSport]; const body=document.getElementById('playerTableBody'); body.innerHTML = sortedPlayers().map(p=>{ const rowClass = p.status==='expected'? 'row-expected' : (p.status==='possible'? 'row-possible' : 'row-unexpected'); return `<tr class="${rowClass}">
   <td><input type="checkbox" ${p.selected?'checked':''} onchange="toggleSelected('${p.id}')" /></td>
   <td><input type="checkbox" ${p.captain?'checked':''} ${!usesCaptains(state.detectedSport, state.contestType)?'disabled':''} onchange="toggleCaptain('${p.id}')" /></td>
   <td>${esc(p.name)}</td>
@@ -500,7 +540,7 @@ function generateLineupsMaxSpend(){
   const cfg = SPORT_CONFIGS[state.detectedSport];
   const withCap = usesCaptains(state.detectedSport, state.contestType);
 
-  const pool = state.players.filter(p => p.selected).sort((a,b)=>b.salary-a.salary);
+  const pool = shuffle(state.players.filter(p => p.selected));
   if (pool.length < cfg.lineupSize) throw new Error(`Need ≥ ${cfg.lineupSize} selected players; have ${pool.length}.`);
 
   let caps = [];
@@ -521,7 +561,7 @@ function generateLineupsMaxSpend(){
   const tryBuild = (cap) => {
     const base=[]; let total=0;
     if(cap){ base.push(cap); total+=cap.salary; }
-    const others = pool.filter(p=>!cap || p.id!==cap.id);
+    const others = shuffle(pool.filter(p=>!cap || p.id!==cap.id));
 
     for (const p of others){
       if (base.length>=cfg.lineupSize) break;
@@ -541,19 +581,6 @@ function generateLineupsMaxSpend(){
       const iMin = base.reduce((m,p,i)=> p.salary<base[m].salary? i:m,0);
       total -= base[iMin].salary;
       base.splice(iMin,1);
-    }
-
-    let improved=true, guard=0;
-    while (improved && guard<200){
-      improved=false; guard++;
-      const iMin = base.reduce((m,p,i)=> p.salary<base[m].salary? i:m,0);
-      const cheapest = base[iMin];
-      const cand = others.find(p => !base.find(x=>x.id===p.id) && (total - cheapest.salary + p.salary) <= max && p.salary > cheapest.salary);
-      if (cand){
-        total = total - cheapest.salary + cand.salary;
-        base[iMin] = cand;
-        improved = true;
-      }
     }
 
     if (base.length===cfg.lineupSize && total>=min && total<=max){
@@ -587,22 +614,50 @@ function setDynamicCapDefaults(){
   const target = top.reduce((s,p)=>s+p.salary, 0);
 
   const min = Math.max(0, Math.floor(target * 0.9)); // 90% of “best possible”
-  const max = Math.ceil(target);                      // exact top sum (rounded up)
+  const max = Math.max(min + 1, Math.ceil(target * 0.98)); // slight slack to allow variety
 
   document.getElementById('minSalary').value = min;
   document.getElementById('maxSalary').value = max;
 }
 
 // -------------------- EVENTS --------------------
-const uploadZone = document.getElementById('uploadZone'); const fileInput = document.getElementById('fileInput');
-uploadZone.addEventListener('click',()=>fileInput.click());
-uploadZone.addEventListener('dragover',e=>{e.preventDefault(); uploadZone.classList.add('dragover');});
-uploadZone.addEventListener('dragleave',()=>uploadZone.classList.remove('dragover'));
-uploadZone.addEventListener('drop',e=>{ e.preventDefault(); uploadZone.classList.remove('dragover'); const f=e.dataTransfer.files; if(f.length) processFile(f[0]); });
-fileInput.addEventListener('change',e=>{ if(e.target.files.length) processFile(e.target.files[0]); });
+// Handle direct clicks and drag-drop uploads for the CSV input area
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+// Click or drag-drop to trigger file selection
+uploadZone.addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', async e => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) await processFile(file);
+});
+fileInput.addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (file) await processFile(file);
+});
 
-async function processFile(file){ try{ const players = await importCSV(file); state.players = players; state.detectedSport = detectSportFromCSV(players); state.datasetMeta = { tournament: file.name.replace(/\.csv$/i,''), eventName: 'Imported CSV' }; state.isDemo=false; uploadZone.classList.add('has-file'); showToast(`Loaded ${players.length} players`,`success`); updateDetection(); setStep(2); }
-catch(err){ showToast(err.message,'error'); } }
+// Parse uploaded CSV and exit demo mode
+async function processFile(file) {
+  try {
+    const players = await importCSV(file);
+    state.players = players;
+    state.detectedSport = detectSportFromCSV(players);
+    state.datasetMeta = {
+      tournament: file.name.replace(/\.csv$/i, ''),
+      eventName: 'Imported CSV'
+    };
+    state.isDemo = false;
+    uploadZone.classList.add('has-file');
+    showToast(`Loaded ${players.length} players`, `success`);
+    updateDetection();
+    setStep(2);
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
 
 // Demo cycle (uses KEY rotation) — FIXED: single declaration of DEMO_ROTATION & demoIndex
 
@@ -616,6 +671,7 @@ document.getElementById('demoBtn').addEventListener('click', async () => {
     state.currentDemoSport = demo.sport;
     state.contestType = demo.contest;
     state.datasetMeta = { tournament: demo.tournament, eventName: demo.eventName };
+    state.isDemo = true;
     updateDetection();
     showToast(`Demo loaded: ${DEMO_CSVS[key].label} (${demo.players.length} players)`);
     setStep(2);
@@ -652,7 +708,7 @@ document.getElementById('confirmContest').addEventListener('click',()=>{
 
   setDynamicCapDefaults();   // ← dynamic min/max based on this slate
 
-  derivePositionOptions();
+  deriveFilters();
   updateStats();
   renderPlayers();
   refreshCaptainButtons();
@@ -660,7 +716,15 @@ document.getElementById('confirmContest').addEventListener('click',()=>{
 });
 
 // Generate
-document.getElementById('generateBtn').addEventListener('click',()=>{   try{     state.lineups = generateLineupsMaxSpend();   // ← use max-spend     renderLineups();     showToast(`Generated ${state.lineups.length} lineups!`,'success');   } catch(err){     showToast(err.message,'error');   } });
+document.getElementById('generateBtn').addEventListener('click', () => {
+  try {
+    state.lineups = generateLineupsMaxSpend(); // ← use max-spend
+    renderLineups();
+    showToast(`Generated ${state.lineups.length} lineups!`, 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+});
 
 // Player controls
 document.getElementById('selectAll').addEventListener('click',()=>{ state.players.forEach(p=>p.selected=true); updateStats(); renderPlayers(); });
@@ -671,6 +735,8 @@ document.getElementById('clearResults').addEventListener('click',()=>{ state.lin
 document.getElementById('startOver').addEventListener('click',()=>{ state.players=[]; state.lineups=[]; state.currentDemoSport='nfl'; state.datasetMeta={tournament:'',eventName:''}; state.isDemo=false; document.getElementById('downloadBtn').setAttribute('disabled',''); uploadZone.classList.remove('has-file'); setStep(1); });
 document.getElementById('searchPlayers').addEventListener('input',renderPlayers);
 document.getElementById('positionFilter').addEventListener('change',renderPlayers);
+document.getElementById('teamFilter').addEventListener('change',renderPlayers);
+document.getElementById('salarySort').addEventListener('change',renderPlayers);
 
 // Expose for checkboxes
 window.toggleSelected = id => { const p=state.players.find(x=>x.id===id); if(!p) return; p.selected=!p.selected; if(!p.selected) p.captain=false; updateStats(); renderPlayers(); };
