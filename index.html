@@ -407,8 +407,6 @@ async function importCSV(file){
   if(!players.length) throw new Error('No valid players found');
   return players;
 }
- codex/refactor-fanteam-dfs-optimizer
- main
 // Load a demo CSV by KEY (uses same pipeline as uploads)
 async function loadDemoCsv(key){
   state.isDemo = true;
