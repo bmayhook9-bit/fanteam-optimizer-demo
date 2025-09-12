@@ -488,6 +488,8 @@ function renderLineups(){ const cfg=SPORT_CONFIGS[state.detectedSport]; const bo
   <td>${cfg.currency}${l.totalSalary}</td>
 </tr>`).join(''); document.getElementById('lineupResults').textContent = state.lineups.length; updateDownloadLink(); document.getElementById('downloadBtn').toggleAttribute('disabled', state.lineups.length===0); }
 
+const csvRow = row => row.map(f => `"${String(f).replace(/"/g,'""')}"`).join(',');
+
 function updateDownloadLink(){
   const cfg=SPORT_CONFIGS[state.detectedSport];
   const use=usesCaptains(state.detectedSport, state.contestType);
@@ -502,7 +504,7 @@ function updateDownloadLink(){
     rows.push(names);
   });
 
-  const csv = rows.map(r=>r.join(',')).join('\n');
+  const csv = rows.map(csvRow).join('\n');
   const blob=new Blob([csv],{type:'text/csv'});
   const dl=document.getElementById('downloadBtn');
   dl.href = URL.createObjectURL(blob);
