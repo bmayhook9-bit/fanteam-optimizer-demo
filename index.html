@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FanTeam DFS Optimizer — MVP v2</title>
+<style>
+:root{--bg:#0b0e13;--panel:#121723;--mut:#8aa0c9;--text:#e8ecf6;--accent:#2fe089;--warn:#ffb86c;--err:#ff6b6b;--success:#2fe089;--br:14px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto;overflow-x:hidden}
+header{padding:20px;text-align:center;border-bottom:1px solid #1b2131;background:linear-gradient(180deg,#121723,#0b0e13)}
+h1{margin:0;font-size:24px;color:var(--accent);font-weight:600}
+.subtitle{color:var(--mut);margin-top:8px;font-size:14px}
+.container{max-width:960px;margin:0 auto;padding:40px 20px}
+small.mono{font-family:ui-monospace,Menlo,Consolas,monospace;color:#9fb2dc}
+.progress-steps{display:flex;justify-content:center;gap:20px;margin:20px 0}
+.progress-step{display:flex;align-items:center;gap:8px;color:var(--mut);font-size:12px}
+.progress-step.active{color:var(--accent)}
+.progress-step.completed{color:var(--success)}
+.step-number{width:24px;height:24px;border-radius:50%;background:#1a2438;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600}
+.step-number.active{background:var(--accent);color:#0b291a}
+.step-number.completed{background:var(--success);color:#0b291a}
+.step{display:none;text-align:left}
+.step.active{display:block}
+.step h2{color:var(--accent);margin-bottom:12px;font-size:20px}
+.step p{color:var(--mut);margin-bottom:16px;line-height:1.6}
+.upload-zone{border:2px dashed #344155;border-radius:12px;padding:40px 24px;margin:16px 0;cursor:pointer;transition:all .2s;background:rgba(26,36,56,.25)}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:rgba(47,224,137,.08)}
+.upload-zone.has-file{border-color:var(--success);background:rgba(47,224,137,.1)}
+.upload-icon{font-size:40px;margin-bottom:10px;color:var(--accent);text-align:center}
+.upload-text{text-align:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid #24314d;background:#10182a;color:#e8ecf6;padding:10px 16px;border-radius:8px;cursor:pointer;font-size:14px;transition:all .15s;text-decoration:none;font-weight:600}
+.btn:hover{background:#1a2438;border-color:#2fe089}
+.btn.primary{background:linear-gradient(135deg,#2fe089,#1db26a);color:#072615;border-color:#1d8a55}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-group{display:flex;gap:10px;flex-wrap:wrap}
+.detection-result{background:var(--panel);border:1px solid #1b2131;border-radius:8px;padding:12px;margin:12px 0}
+.detection-grid{display:grid;grid-template-columns:1fr 2fr;gap:8px;align-items:center}
+.label{color:#9db1d9;font-size:12px}
+.value{color:#e8ecf6;font-weight:600;font-size:13px}
+.sport-selector{background:#0d1220;border:1px solid #20283a;border-radius:8px;padding:12px;color:var(--text);font-size:14px;width:100%;margin:10px 0}
+.contest-type{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+.contest-option{background:var(--panel);border:2px solid #1b2131;border-radius:10px;padding:16px;cursor:pointer;transition:all .15s}
+.contest-option:hover{border-color:var(--accent)}
+.contest-option.selected{border-color:var(--success);background:rgba(47,224,137,.08)}
+.main-interface{display:none;max-width:1400px;margin:0 auto;padding:20px}
+.main-interface.active{display:grid;grid-template-columns:360px 1fr;gap:16px}
+@media(max-width:1100px){.main-interface.active{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid #1b2131;border-radius:var(--br);padding:14px;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+.panel h3{margin:0 0 10px 0;font-size:15px;color:var(--accent)}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.stat{background:#0d1220;border:1px solid #1e2740;border-radius:8px;padding:8px}
+.stat .v{font-weight:700;color:var(--accent)}
+.stat .k{font-size:11px;color:#9fb0d7}
+.control-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+input[type="number"],input[type="text"],select{background:#0d1220;color:var(--text);border:1px solid #20283a;border-radius:8px;padding:8px;font-size:13px;width:100%}
+label{display:block;margin:6px 0 4px;color:#aab2cd;font-size:12px}
+.scroller{max-height:420px;overflow:auto;border:1px solid #1e2740;border-radius:8px;background:#0a0f1a}
+.table{width:100%;border-collapse:collapse;font-size:12px}
+.table th,.table td{padding:6px 8px;border-bottom:1px solid #20283a;text-align:left}
+.table th{position:sticky;top:0;background:#0f1524;z-index:1;color:#c8d2ef;font-weight:600;font-size:11px}
+.row-expected{background:rgba(47,224,137,.06);border-left:3px solid var(--success)}
+.row-possible{background:rgba(255,184,108,.06);border-left:3px solid var(--warn)}
+.row-unexpected{background:rgba(255,107,107,.06);border-left:3px solid var(--err)}
+.searchbar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.toast{position:fixed;top:16px;right:16px;background:var(--panel);border:1px solid #1b2131;padding:12px 14px;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.3);z-index:1000;max-width:320px}
+.toast.success{border-color:var(--success);background:rgba(47,224,137,.08)}
+.toast.error{border-color:var(--err);background:rgba(255,107,107,.08)}
+.helper{font-size:12px;color:#aab2cd}
+.badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #2a3552;background:#0f1726;border-radius:999px;padding:4px 8px;font-size:11px;color:#c9d5f5}
+hr.sep{border:none;border-top:1px solid #1b2131;margin:12px 0}
+</style>
+</head>
+<body>
+<header>
+  <h1>FanTeam DFS Optimizer — MVP</h1>
+  <div class="subtitle">European-focused • Transparent algorithms • Multi-sport • FanTeam-ready</div>
+</header>
+
+<div class="container">
+  <!-- Progress -->
+  <div class="progress-steps">
+    <div class="progress-step" id="ps1"><div class="step-number" id="sn1">1</div><span>Upload</span></div>
+    <div class="progress-step" id="ps2"><div class="step-number" id="sn2">2</div><span>Confirm</span></div>
+    <div class="progress-step" id="ps3"><div class="step-number" id="sn3">3</div><span>Contest</span></div>
+    <div class="progress-step" id="ps4"><div class="step-number" id="sn4">4</div><span>Optimize</span></div>
+  </div>
+
+  <!-- Step 1: Upload -->
+  <section class="step" id="step1">
+    <h2>Upload your FanTeam export (CSV)</h2>
+    <p class="helper">We’ll auto-detect sport & format. Supports NFL, Football, Golf, F1. The tool applies our validated NFL projection conversion methodology when projections are supplied (placeholder in this MVP).</p>
+    <div class="upload-zone" id="uploadZone">
+      <div class="upload-icon">📊</div>
+      <div class="upload-text">Drop CSV here or click to browse</div>
+      <input type="file" id="fileInput" accept=".csv" hidden />
+    </div>
+    <div class="badge">Free demo mode available — no account required</div>
+    <div style="margin-top:12px" class="btn-group">
+      <button class="btn" id="demoBtn">Try Demo Data (Cycle sports)</button>
+    </div>
+  </section>
+
+  <!-- Step 2: Confirm -->
+  <section class="step" id="step2">
+    <h2>Confirm detection</h2>
+    <div class="detection-result">
+      <div class="detection-grid">
+        <div class="label">Tournament</div><div class="value" id="metaTournament">—</div>
+        <div class="label">Event</div><div class="value" id="metaEvent">—</div>
+        <div class="label">Detected sport</div><div class="value" id="detectedSport">—</div>
+        <div class="label">Contest type</div><div class="value" id="detectedContest">—</div>
+        <div class="label">Players found</div><div class="value" id="playerCount">0</div>
+        <div class="label">Salary range</div><div class="value" id="salaryRange">—</div>
+        <div class="label">Positions</div><div class="value" id="commonPositions">—</div>
+      </div>
+    </div>
+
+    <label for="sportSelector">Override sport (if needed)</label>
+    <select id="sportSelector" class="sport-selector">
+      <option value="nfl">🏈 NFL</option>
+      <option value="football">⚽ Football/Soccer</option>
+      <option value="golf">🏌️ Golf</option>
+      <option value="f1">🏎️ Formula 1</option>
+    </select>
+
+    <div class="btn-group" style="margin-top:10px">
+      <button class="btn" id="backToUpload">← Back</button>
+      <button class="btn primary" id="confirmSport">Continue →</button>
+    </div>
+  </section>
+
+  <!-- Step 3: Contest -->
+  <section class="step" id="step3">
+    <h2>Select contest format</h2>
+    <div class="contest-type">
+      <div class="contest-option selected" data-type="full-slate" id="optFull"><strong>Full slate</strong><br><small class="mono">Classic multi-game</small></div>
+      <div class="contest-option" data-type="showdown" id="optShow"><strong>Showdown</strong><br><small class="mono">Single game, captain</small></div>
+    </div>
+    <div class="btn-group">
+      <button class="btn" id="backToSport">← Back</button>
+      <button class="btn primary" id="confirmContest">Start optimizing →</button>
+    </div>
+  </section>
+</div>
+
+<!-- Step 4: Main interface -->
+<section class="main-interface" id="main">
+  <aside class="panel">
+    <h3>🎯 Contest setup</h3>
+    <div class="stat-grid" style="margin-bottom:10px">
+      <div class="stat"><div class="v" id="statSport">—</div><div class="k">Sport</div></div>
+      <div class="stat"><div class="v" id="statContest">—</div><div class="k">Contest</div></div>
+      <div class="stat"><div class="v" id="statPlayers">0</div><div class="k">Players</div></div>
+    </div>
+
+    <h3>⚙️ Lineup settings</h3>
+    <div class="control-row">
+      <div>
+        <label for="lineupCount">Lineups</label>
+        <input id="lineupCount" type="number" min="1" max="150" value="20" />
+      </div>
+      <div>
+        <label for="strategy">Strategy</label>
+        <select id="strategy">
+          <option value="balanced">Balanced</option>
+          <option value="safe">Safe</option>
+          <option value="aggressive">Aggressive</option>
+          <option value="contrarian">Contrarian</option>
+        </select>
+      </div>
+    </div>
+    <div class="control-row">
+      <div>
+        <label for="minSalary">Min salary</label>
+        <input id="minSalary" type="number" />
+      </div>
+      <div>
+        <label for="maxSalary">Max salary</label>
+        <input id="maxSalary" type="number" />
+      </div>
+    </div>
+    <button class="btn primary" id="generateBtn" style="width:100%;margin-top:10px">🚀 Generate lineups</button>
+
+    <hr class="sep" />
+    <h3>🔍 Transparency</h3>
+    <div class="stat">
+      <div class="k">Constraints applied</div>
+      <div class="helper" id="constraintsText">—</div>
+    </div>
+
+    <h3 style="margin-top:10px">📊 Validation</h3>
+    <div class="stat-grid">
+      <div class="stat"><div class="v" id="selectedCount">0</div><div class="k">Selected</div></div>
+      <div class="stat"><div class="v" id="captainCount">0</div><div class="k">Captains</div></div>
+      <div class="stat"><div class="v" id="lineupResults">0</div><div class="k">Generated</div></div>
+    </div>
+  </aside>
+
+  <main class="panel">
+    <div class="searchbar">
+      <h3 style="margin:0;flex:1">👥 Player management</h3>
+      <input id="searchPlayers" type="text" placeholder="Search by name..." style="max-width:180px" />
+      <select id="positionFilter" style="max-width:120px"><option value="">All positions</option></select>
+    </div>
+    <div class="btn-group" style="margin-bottom:8px">
+      <button class="btn" id="selectAll">Select all</button>
+      <button class="btn" id="selectNone">Clear all</button>
+      <button class="btn" id="selectExpected">Expected only</button>
+      <button class="btn" id="captainAll">Captain all</button>
+    </div>
+
+    <div class="scroller">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>✓</th>
+            <th>C</th>
+            <th>Player</th>
+            <th>Pos</th>
+            <th>Team</th>
+            <th>Salary</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="playerTableBody"></tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top:16px">🏆 Generated lineups</h3>
+    <div class="scroller" style="max-height:320px">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Captain</th>
+            <th>Players</th>
+            <th>Total salary</th>
+          </tr>
+        </thead>
+        <tbody id="lineupTableBody"></tbody>
+      </table>
+    </div>
+
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <a class="btn primary" id="downloadBtn" href="#" download="fanteam_lineups.csv" disabled>📥 Download CSV</a>
+      <button class="btn" id="clearResults">Clear results</button>
+      <button class="btn" id="startOver">← Start over</button>
+    </div>
+  </main>
+</section>
+
+<div id="toastContainer"></div>
+
+<script>
+// -------------------- CONFIG --------------------
+
+// Real demo CSV datasets served from /demo (Vercel/static hosting)
+const DEMO_CSVS = {
+  nfl_full: { label:'NFL — Full slate', sport:'nfl', contest:'full-slate', tournament:'Tournament 1009899 (846 players)', eventName:'NFL Week 1 Full Slate', url:'./demo/1009899_players_20250908161603.csv' },
+  nfl_show: { label:'NFL — Showdown', sport:'nfl', contest:'showdown', tournament:'Tournament 1010808 (52 players)', eventName:'NFL Showdown (Single Game)', url:'./demo/1010808_players_20250908161619.csv' },
+  fb_full:  { label:'Football — CL full slate', sport:'football', contest:'full-slate', tournament:'Tournament 1008839 (414 players)', eventName:'Champions League Night', url:'./demo/1008839_players_20250906222543.csv' },
+  fb_show:  { label:'Football — Showdown', sport:'football', contest:'showdown', tournament:'Tournament 1008665 (30 players)', eventName:'Real Madrid vs Manchester City', url:'./demo/1008665_players_20250906172857.csv' },
+  f1_full:  { label:'F1 — Race weekend', sport:'f1', contest:'full-slate', tournament:'Tournament 1009037 (34 players)', eventName:'F1 Race Weekend', url:'./demo/1009037_players_20250908102649.csv' },
+  golf_full:{ label:'Golf — PGA tournament', sport:'golf', contest:'full-slate', tournament:'Tournament 1002987 (69 players)', eventName:'PGA Tournament', url:'./demo/1000000_players_20250815093906.csv' }
+};
+
+// Rotation order for the demo button (array of KEYS)
+const DEMO_ROTATION = ['nfl_full','nfl_show','fb_full','fb_show','f1_full','golf_full'];
+let demoIndex = -1;
+
+// Sport config (FanTeam-aligned)
+const SPORT_CONFIGS = {
+  nfl:{ name:'NFL', icon:'🏈', lineupSize:9, positions:['QUARTERBACK','RUNNING_BACK','WIDE_RECEIVER','TIGHT_END','DST'], salaryRange:[49500,50000], currency:'$', fullSlateSize:846, showdownSize:52 },
+  football:{ name:'Football/Soccer', icon:'⚽', lineupSize:6, positions:['GOALKEEPER','DEFENDER','MIDFIELDER','FORWARD'], salaryRange:[98,100], currency:'£', fullSlateSize:414, showdownSize:30 },
+  golf:{ name:'Golf', icon:'🏌️', lineupSize:6, positions:['PLAYER'], salaryRange:[98,100], currency:'$', fullSlateSize:69, showdownSize:69 },
+  f1:{ name:'Formula 1', icon:'🏎️', lineupSize:6, positions:['DRIVER','CONSTRUCTOR'], salaryRange:[98,102], currency:'£', fullSlateSize:34, showdownSize:34 }
+};
+
+const state = { currentStep:1, players:[], lineups:[], detectedSport:'nfl', contestType:'full-slate', currentDemoSport:'nfl', datasetMeta:{ tournament:'', eventName:'' } };
+
+// -------------------- (Optional legacy synthetic demo, unused) --------------------
+// retained for future offline fallback
+const DEMO = { /* ...same as before; not used when real CSVs exist... */ };
+function generateDemoData(){ return { players:[], tournament:'', eventName:'', contest:'full-slate' }; }
+
+// -------------------- UTILS --------------------
+const esc = (s='') => s.replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[c]));
+const toNumber = v => { if(typeof v!== 'string') return +v||0; const cleaned = v.replace(/[^0-9.\-]/g,''); return parseFloat(cleaned)||0; };
+const norm = s => (s||'').toLowerCase().replace(/[_\s]/g,'');
+
+function showToast(msg,type='success'){ const t=document.createElement('div'); t.className=`toast ${type}`; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000); }
+
+function parseCSV(text){
+  const lines = text.split(/\r?\n/).filter(l=>l.trim().length);
+  const rows=[]; for(const line of lines){ let cur=''; let inQ=false; const out=[]; for(let i=0;i<line.length;i++){ const ch=line[i], nx=line[i+1]; if(ch==='"'){ if(inQ && nx==='"'){ cur+='"'; i++; } else { inQ=!inQ; } } else if(ch===',' && !inQ){ out.push(cur.trim()); cur=''; } else { cur+=ch; } } out.push(cur.trim()); rows.push(out); }
+  return rows;
+}
+
+function usesCaptains(sport, contest){ if(sport==='nfl') return contest==='showdown'; if(sport==='football') return true; if(sport==='golf') return true; if(sport==='f1') return true; return false; }
+
+function detectSportFromCSV(players){ if(!players||!players.length) return 'nfl';
+  const positions = [...new Set(players.map(p=>norm(p.position)))];
+  const avgSalary = players.reduce((s,p)=>s+(p.salary||0),0)/players.length;
+  const n = players.length;
+  const nfl = ['quarterback','runningback','widereceiver','tightend','dst','defense','qb','rb','wr','te'];
+  if(positions.some(p=>nfl.includes(p))){ state.contestType = n>100? 'full-slate':'showdown'; return 'nfl'; }
+  const foot = ['defender','midfielder','forward','goalkeeper','gk','def','mid','fwd'];
+  if(positions.some(p=>foot.includes(p))){ state.contestType = n>100? 'full-slate':'showdown'; return 'football'; }
+  const f1 = ['driver','constructor']; if(positions.some(p=>f1.includes(p)) || (n>=30 && n<=40)){ state.contestType='full-slate'; return 'f1'; }
+  if(n>=60 && n<=80){ state.contestType='full-slate'; return 'golf'; }
+  if(avgSalary>1000){ state.contestType = n>100? 'full-slate':'showdown'; return 'nfl'; }
+  return 'football';
+}
+
+async function importCSV(file){
+  const text = await file.text(); const rows = parseCSV(text); if(rows.length<2) throw new Error('CSV needs header + at least 1 data row');
+  const headers = rows[0].map(h=>norm(h));
+  const nameCol = headers.findIndex(h=> h.includes('name') && !h.includes('first'));
+  const firstCol = headers.findIndex(h=> h.includes('fname') || h.includes('first'));
+  const salaryCol = headers.findIndex(h=> h.includes('price') || h.includes('salary'));
+  const posCol = headers.findIndex(h=> h.includes('position'));
+  const teamCol = headers.findIndex(h=> h.includes('club') || h.includes('team'));
+  const statusCol = headers.findIndex(h=> h.includes('lineup') || h.includes('status'));
+  const idCol = headers.findIndex(h=> h.includes('playerid') || h==='id');
+  if(nameCol===-1 || salaryCol===-1) throw new Error('Required columns: Name and Price/Salary');
+
+  const posMap = { DEF:'DEFENDER', MID:'MIDFIELDER', FWD:'FORWARD', GK:'GOALKEEPER' };
+  const players=[]; for(let i=1;i<rows.length;i++){
+    const r = rows[i]; if(!r||!r.length) continue; const first = firstCol!==-1? (r[firstCol]||'').trim() : ''; const last = nameCol!==-1? (r[nameCol]||'').trim() : ''; const display = first && last? `${first} ${last}` : (last||first); if(!display) continue;
+    const salary = toNumber(r[salaryCol]); if(salary<=0) continue; const id = idCol!==-1? (r[idCol]||'').trim() : `p_${i}`; const team = teamCol!==-1? (r[teamCol]||'').trim() : '';
+    let position = posCol!==-1? (r[posCol]||'').trim().toUpperCase() : '';
+    position = posMap[position] || position;
+    let status = 'expected'; if(statusCol!==-1){ const sv = (r[statusCol]||'').toLowerCase(); if(sv.includes('possible')) status='possible'; else if(sv.includes('unexpected')||sv.includes('doubt')) status='unexpected'; }
+    players.push({ id, name:display, first, last, team, position, salary, status, selected: status==='expected', captain:false });
+  }
+  if(!players.length) throw new Error('No valid players found');
+  return players;
+}
+
+// Load a demo CSV by KEY (uses same pipeline as uploads)
+async function loadDemoCsv(key) {
+  const preset = DEMO_CSVS[key];
+  if (!preset) throw new Error(`Unknown demo key: ${key}`);
+  const res = await fetch(preset.url);
+  if (!res.ok) throw new Error(`Failed to fetch ${preset.url}`);
+  const csvText = await res.text();
+  const rows = parseCSV(csvText);
+  if (rows.length < 2) throw new Error(`Demo "${key}" CSV appears empty.`);
+  const headers = rows[0].map(h => norm(h)); // fix: use existing normalizer
+  const nameCol      = headers.findIndex(h => h.includes('name') && !h.includes('first'));
+  const firstNameCol = headers.findIndex(h => h.includes('fname') || h.includes('first'));
+  const salaryCol    = headers.findIndex(h => h.includes('price') || h.includes('salary'));
+  const positionCol  = headers.findIndex(h => h.includes('position'));
+  const teamCol      = headers.findIndex(h => h.includes('club') || h.includes('team'));
+  const statusCol    = headers.findIndex(h => h.includes('lineup') || h.includes('status'));
+  const playerIdCol  = headers.findIndex(h => h.includes('playerid') || h === 'id');
+  if (nameCol === -1 || salaryCol === -1) throw new Error('Demo missing required columns (Name & Salary).');
+  const posMap = { DEF:'DEFENDER', MID:'MIDFIELDER', FWD:'FORWARD', GK:'GOALKEEPER' };
+  const players = [];
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i]; if (!r || !r.length) continue;
+    const first = firstNameCol !== -1 ? (r[firstNameCol] || '').trim() : '';
+    const last  = nameCol      !== -1 ? (r[nameCol]      || '').trim() : '';
+    const display = first && last ? `${first} ${last}` : (last || first); if (!display) continue;
+    const salary = toNumber(r[salaryCol]); if (salary <= 0) continue;
+    const id     = playerIdCol !== -1 ? (r[playerIdCol] || '').trim() : `p_${i}`;
+    const team   = teamCol     !== -1 ? (r[teamCol]     || '').trim() : '';
+    let position = positionCol !== -1 ? (r[positionCol] || '').trim().toUpperCase() : '';
+    position = posMap[position] || position;
+    let status = 'expected';
+    if (statusCol !== -1) {
+      const sv = (r[statusCol] || '').toLowerCase();
+      if (sv.includes('possible')) status = 'possible';
+      else if (sv.includes('unexpected') || sv.includes('doubt')) status = 'unexpected';
+    }
+    players.push({ id, name: display, first, last, team, position, salary, status, selected: status==='expected', captain: false });
+  }
+  return { players, sport: preset.sport, contest: preset.contest, tournament: preset.tournament, eventName: preset.eventName };
+}
+
+function demoKeyFor(sport, contest) {
+  const entry = Object.entries(DEMO_CSVS).find(([,p]) => p.sport===sport && p.contest===contest)
+              || Object.entries(DEMO_CSVS).find(([,p]) => p.sport===sport);
+  return entry ? entry[0] : null;
+}
+
+// -------------------- UI STATE --------------------
+function setStep(k){ [1,2,3,4].forEach(i=>{ const s=document.getElementById(`step${i}`); const ps=document.getElementById(`ps${i}`); const sn=document.getElementById(`sn${i}`); if(s) s.classList.toggle('active', i===k && i<=3); if(ps&&sn){ ps.classList.remove('active','completed'); sn.classList.remove('active','completed'); if(i<k){ ps.classList.add('completed'); sn.classList.add('completed'); } else if(i===k){ ps.classList.add('active'); sn.classList.add('active'); } } });
+  document.getElementById('main').classList.toggle('active', k===4); state.currentStep=k; refreshCaptainButtons(); }
+
+function updateDetection(){ const cfg = SPORT_CONFIGS[state.detectedSport]; const n = state.players.length; document.getElementById('playerCount').textContent=n; document.getElementById('detectedSport').textContent=cfg.name; document.getElementById('detectedContest').textContent= state.contestType==='showdown'? 'Showdown':'Full slate'; document.getElementById('sportSelector').value = state.detectedSport; document.getElementById('metaTournament').textContent = state.datasetMeta.tournament||'—'; document.getElementById('metaEvent').textContent = state.datasetMeta.eventName||'—';
+  if(n){ const salaries = state.players.map(p=>p.salary).filter(s=>s>0); const min=Math.min(...salaries), max=Math.max(...salaries); document.getElementById('salaryRange').textContent = `${cfg.currency}${Math.round(min)} - ${cfg.currency}${Math.round(max)}`; const positions=[...new Set(state.players.map(p=>p.position).filter(Boolean))]; document.getElementById('commonPositions').textContent = positions.slice(0,6).join(', ');} else { document.getElementById('salaryRange').textContent= `${cfg.currency}0 - ${cfg.currency}0`; document.getElementById('commonPositions').textContent='—'; }
+}
+
+function updateStats(){ const sel=state.players.filter(p=>p.selected).length; const caps=state.players.filter(p=>p.captain).length; document.getElementById('selectedCount').textContent=sel; document.getElementById('captainCount').textContent=caps; document.getElementById('statPlayers').textContent=state.players.length; }
+
+function refreshCaptainButtons(){ const btn=document.getElementById('captainAll'); const use=usesCaptains(state.detectedSport, state.contestType); if(btn){ btn.disabled = !use; }
+  // Constraints text
+  const cfg = SPORT_CONFIGS[state.detectedSport]; const min=+document.getElementById('minSalary').value||cfg.salaryRange[0]; const max=+document.getElementById('maxSalary').value||cfg.salaryRange[1]; const ct = use? 'Captain required' : 'No captain'; document.getElementById('constraintsText').textContent = `${cfg.name} • ${state.contestType} • Lineup size ${cfg.lineupSize} • ${ct} • Salary ${cfg.currency}${min}–${cfg.currency}${max}`;
+}
+
+function derivePositionOptions(){ const sel=document.getElementById('positionFilter'); sel.innerHTML = '<option value="">All positions</option>'; const uniq=[...new Set(state.players.map(p=>p.position).filter(Boolean))].sort(); uniq.forEach(pos=>{ const o=document.createElement('option'); o.value=pos; o.textContent=pos; sel.appendChild(o); }); }
+
+function filteredPlayers(){ const q=document.getElementById('searchPlayers').value.toLowerCase(); const pf=document.getElementById('positionFilter').value; return state.players.filter(p=>{ const s=!q || p.name.toLowerCase().includes(q); const m=!pf || p.position===pf; return s&&m; }); }
+
+function renderPlayers(){ const cfg = SPORT_CONFIGS[state.detectedSport]; const body=document.getElementById('playerTableBody'); body.innerHTML = filteredPlayers().map(p=>{ const rowClass = p.status==='expected'? 'row-expected' : (p.status==='possible'? 'row-possible' : 'row-unexpected'); return `<tr class="${rowClass}">
+  <td><input type="checkbox" ${p.selected?'checked':''} onchange="toggleSelected('${p.id}')" /></td>
+  <td><input type="checkbox" ${p.captain?'checked':''} ${!usesCaptains(state.detectedSport, state.contestType)?'disabled':''} onchange="toggleCaptain('${p.id}')" /></td>
+  <td>${esc(p.name)}</td>
+  <td>${esc(p.position)}</td>
+  <td>${esc(p.team||'')}</td>
+  <td>${cfg.currency}${p.salary}</td>
+  <td><span class="helper" style="color:${p.status==='expected'?'#2fe089':p.status==='possible'?'#ffb86c':'#ff6b6b'}">${p.status}</span></td>
+</tr>`; }).join(''); }
+
+function renderLineups(){ const cfg=SPORT_CONFIGS[state.detectedSport]; const body=document.getElementById('lineupTableBody'); const use=usesCaptains(state.detectedSport, state.contestType); body.innerHTML = state.lineups.map(l=>`<tr>
+  <td>${l.id}</td>
+  <td>${esc(use? (l.captain?.name||'') : '—')}</td>
+  <td>${l.players.map(p=>esc(p.name)).join(', ')}</td>
+  <td>${cfg.currency}${l.totalSalary}</td>
+</tr>`).join(''); document.getElementById('lineupResults').textContent = state.lineups.length; updateDownloadLink(); document.getElementById('downloadBtn').toggleAttribute('disabled', state.lineups.length===0); }
+
+function updateDownloadLink(){ const cfg=SPORT_CONFIGS[state.detectedSport]; const use=usesCaptains(state.detectedSport, state.contestType); const headers = Array.from({length: cfg.lineupSize}, (_,i)=>`Player${i+1}`); if(use) headers.push('Captain'); const rows=[headers]; state.lineups.forEach(l=>{ const names = l.players.map(p=>p.name); while(names.length<cfg.lineupSize) names.push(''); if(use) names.push(l.captain?.name||''); rows.push(names); }); const csv = rows.map(r=>r.join(',')).join('\n'); const blob=new Blob([csv],{type:'text/csv'}); document.getElementById('downloadBtn').href = URL.createObjectURL(blob); }
+
+// -------------------- GENERATOR --------------------
+function generateLineups(){ const cfg = SPORT_CONFIGS[state.detectedSport]; const withCap = usesCaptains(state.detectedSport, state.contestType); const pool = state.players.filter(p=>p.selected); if(pool.length < cfg.lineupSize) throw new Error(`Need ≥ ${cfg.lineupSize} selected players; have ${pool.length}.`); let caps=[]; if(withCap){ caps = pool.filter(p=>p.captain); if(!caps.length) throw new Error('Need at least 1 captain candidate.'); }
+  const N = +document.getElementById('lineupCount').value || 20; const min = +document.getElementById('minSalary').value || cfg.salaryRange[0]; const max = +document.getElementById('maxSalary').value || cfg.salaryRange[1];
+  const out=[]; const seen=new Set();
+  for(let tries=0; tries<N*12 && out.length<N; tries++){
+    let lineup=[], cap=null, total=0; const shuffled=[...pool].sort(()=>Math.random()-0.5);
+    if(withCap){ cap = caps[Math.floor(Math.random()*caps.length)]; lineup.push(cap); total += cap.salary; }
+    for(const p of shuffled){ if(lineup.length>=cfg.lineupSize) break; if(cap && p.id===cap.id) continue; if(total + p.salary <= max){ lineup.push(p); total += p.salary; } }
+    if(lineup.length===cfg.lineupSize && total>=min){ const key=lineup.map(p=>p.id).sort().join('|') + (withCap && cap? `|C:${cap.id}`:''); if(!seen.has(key)){ seen.add(key); out.push({ id:out.length+1, players:lineup, captain:cap||null, totalSalary:total }); } }
+  }
+  if(!out.length){ const avgTop = pool.slice(0, cfg.lineupSize).reduce((s,p)=>s+p.salary,0); const hint = avgTop>max? `Hint: Max salary ${max} may be too low; try ≥ ${avgTop}.` : `Hint: Select more low-salary players or lower Min.`; throw new Error(`No valid lineups under current constraints. ${hint}`); }
+  return out;
+}
+
+// -------------------- EVENTS --------------------
+const uploadZone = document.getElementById('uploadZone'); const fileInput = document.getElementById('fileInput');
+uploadZone.addEventListener('click',()=>fileInput.click());
+uploadZone.addEventListener('dragover',e=>{e.preventDefault(); uploadZone.classList.add('dragover');});
+uploadZone.addEventListener('dragleave',()=>uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop',e=>{ e.preventDefault(); uploadZone.classList.remove('dragover'); const f=e.dataTransfer.files; if(f.length) processFile(f[0]); });
+fileInput.addEventListener('change',e=>{ if(e.target.files.length) processFile(e.target.files[0]); });
+
+async function processFile(file){ try{ const players = await importCSV(file); state.players = players; state.detectedSport = detectSportFromCSV(players); state.datasetMeta = { tournament: file.name.replace(/\.csv$/i,''), eventName: 'Imported CSV' }; uploadZone.classList.add('has-file'); showToast(`Loaded ${players.length} players`,`success`); updateDetection(); setStep(2); }
+catch(err){ showToast(err.message,'error'); } }
+
+// Demo cycle (uses KEY rotation) — FIXED: single declaration of DEMO_ROTATION & demoIndex
+
+document.getElementById('demoBtn').addEventListener('click', async () => {
+  try {
+    demoIndex = (demoIndex + 1) % DEMO_ROTATION.length;
+    const key = DEMO_ROTATION[demoIndex];
+    const demo = await loadDemoCsv(key);
+    state.players = demo.players;
+    state.detectedSport = demo.sport;
+    state.currentDemoSport = demo.sport;
+    state.contestType = demo.contest;
+    state.datasetMeta = { tournament: demo.tournament, eventName: demo.eventName };
+    updateDetection();
+    showToast(`Demo loaded: ${DEMO_CSVS[key].label} (${demo.players.length} players)`);
+    setStep(2);
+  } catch (err) { showToast(err.message, 'error'); }
+});
+
+document.getElementById('backToUpload').addEventListener('click',()=>setStep(1));
+document.getElementById('confirmSport').addEventListener('click', async () => {
+  try {
+    state.detectedSport = document.getElementById('sportSelector').value;
+    const isDemo = state.players && state.players.length && (state.players[0].id?.startsWith('p_') || state.players[0].id?.startsWith('demo_'));
+    if (isDemo) {
+      const desired = state.contestType;
+      const key = demoKeyFor(state.detectedSport, desired) || demoKeyFor(state.detectedSport, 'full-slate');
+      if (key) {
+        const demo = await loadDemoCsv(key);
+        state.players = demo.players;
+        state.contestType = demo.contest;
+        state.datasetMeta = { tournament: demo.tournament, eventName: demo.eventName };
+        updateDetection();
+      }
+    }
+    setStep(3);
+  } catch (err) { showToast(err.message, 'error'); }
+});
+document.getElementById('backToSport').addEventListener('click',()=>setStep(2));
+
+// Contest selection
+const optFull=document.getElementById('optFull'); const optShow=document.getElementById('optShow');
+[optFull,optShow].forEach(el=> el.addEventListener('click',()=>{ [optFull,optShow].forEach(x=>x.classList.remove('selected')); el.classList.add('selected'); state.contestType = el.dataset.type; }));
+document.getElementById('confirmContest').addEventListener('click',()=>{ const cfg=SPORT_CONFIGS[state.detectedSport]; document.getElementById('statSport').textContent = cfg.name; document.getElementById('statContest').textContent = state.contestType==='showdown'? 'Showdown':'Full slate'; document.getElementById('minSalary').value = cfg.salaryRange[0]; document.getElementById('maxSalary').value = cfg.salaryRange[1]; derivePositionOptions(); updateStats(); renderPlayers(); refreshCaptainButtons(); setStep(4); });
+
+// Generate
+document.getElementById('generateBtn').addEventListener('click',()=>{ try{ state.lineups = generateLineups(); renderLineups(); showToast(`Generated ${state.lineups.length} lineups!`,'success'); } catch(err){ showToast(err.message,'error'); } });
+
+// Player controls
+document.getElementById('selectAll').addEventListener('click',()=>{ state.players.forEach(p=>p.selected=true); updateStats(); renderPlayers(); });
+document.getElementById('selectNone').addEventListener('click',()=>{ state.players.forEach(p=>{ p.selected=false; p.captain=false; }); updateStats(); renderPlayers(); });
+document.getElementById('selectExpected').addEventListener('click',()=>{ state.players.forEach(p=>{ p.selected = (p.status==='expected'); if(!p.selected) p.captain=false; }); updateStats(); renderPlayers(); });
+document.getElementById('captainAll').addEventListener('click',()=>{ if(!usesCaptains(state.detectedSport, state.contestType)) return; state.players.filter(p=>p.selected).forEach(p=>p.captain=true); updateStats(); renderPlayers(); });
+document.getElementById('clearResults').addEventListener('click',()=>{ state.lineups=[]; renderLineups(); });
+document.getElementById('startOver').addEventListener('click',()=>{ state.players=[]; state.lineups=[]; state.currentDemoSport='nfl'; state.datasetMeta={tournament:'',eventName:''}; document.getElementById('downloadBtn').setAttribute('disabled',''); uploadZone.classList.remove('has-file'); setStep(1); });
+document.getElementById('searchPlayers').addEventListener('input',renderPlayers);
+document.getElementById('positionFilter').addEventListener('change',renderPlayers);
+
+// Expose for checkboxes
+window.toggleSelected = id => { const p=state.players.find(x=>x.id===id); if(!p) return; p.selected=!p.selected; if(!p.selected) p.captain=false; updateStats(); renderPlayers(); };
+window.toggleCaptain = id => { const p=state.players.find(x=>x.id===id); if(!p) return; if(!usesCaptains(state.detectedSport, state.contestType)) return; p.captain=!p.captain; if(p.captain) p.selected=true; updateStats(); renderPlayers(); };
+
+// -------------------- SELF-TESTS (light sanity checks) --------------------
+(function selfTest(){
+  try {
+    console.assert(Array.isArray(DEMO_ROTATION) && DEMO_ROTATION.every(k=>typeof k==='string'), 'DEMO_ROTATION must be array of keys');
+    console.assert(DEMO_ROTATION.every(k=>DEMO_CSVS[k]), 'All DEMO_ROTATION keys must exist in DEMO_CSVS');
+    console.assert(typeof parseCSV==='function' && typeof norm==='function', 'Parsers present');
+  } catch(e){ console.warn('Self-test failed:', e); }
+})();
+
+// init
+(function init(){ setStep(1); document.getElementById('ps1').classList.add('active'); document.getElementById('sn1').classList.add('active'); console.log('FanTeam DFS Optimizer — MVP v2 ready'); })();
+</script>
+</body>
+</html>
