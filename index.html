@@ -601,8 +601,24 @@ uploadZone.addEventListener('dragleave',()=>uploadZone.classList.remove('dragove
 uploadZone.addEventListener('drop',e=>{ e.preventDefault(); uploadZone.classList.remove('dragover'); const f=e.dataTransfer.files; if(f.length) processFile(f[0]); });
 fileInput.addEventListener('change',e=>{ if(e.target.files.length) processFile(e.target.files[0]); });
 
-async function processFile(file){ try{ const players = await importCSV(file); state.players = players; state.detectedSport = detectSportFromCSV(players); state.datasetMeta = { tournament: file.name.replace(/\.csv$/i,''), eventName: 'Imported CSV' }; state.isDemo=false; uploadZone.classList.add('has-file'); showToast(`Loaded ${players.length} players`,`success`); updateDetection(); setStep(2); }
-catch(err){ showToast(err.message,'error'); } }
+async function processFile(file) {
+  try {
+    const players = await importCSV(file);
+    state.players = players;
+    state.detectedSport = detectSportFromCSV(players);
+    state.datasetMeta = {
+      tournament: file.name.replace(/\.csv$/i, ''),
+      eventName: 'Imported CSV'
+    };
+    state.isDemo = false;
+    uploadZone.classList.add('has-file');
+    showToast(`Loaded ${players.length} players`, `success`);
+    updateDetection();
+    setStep(2);
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
 
 // Demo cycle (uses KEY rotation) — FIXED: single declaration of DEMO_ROTATION & demoIndex
 
@@ -616,6 +632,7 @@ document.getElementById('demoBtn').addEventListener('click', async () => {
     state.currentDemoSport = demo.sport;
     state.contestType = demo.contest;
     state.datasetMeta = { tournament: demo.tournament, eventName: demo.eventName };
+    state.isDemo = true;
     updateDetection();
     showToast(`Demo loaded: ${DEMO_CSVS[key].label} (${demo.players.length} players)`);
     setStep(2);
