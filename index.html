@@ -632,6 +632,7 @@ document.getElementById('demoBtn').addEventListener('click', async () => {
     state.currentDemoSport = demo.sport;
     state.contestType = demo.contest;
     state.datasetMeta = { tournament: demo.tournament, eventName: demo.eventName };
+    state.isDemo = true;
     updateDetection();
     showToast(`Demo loaded: ${DEMO_CSVS[key].label} (${demo.players.length} players)`);
     setStep(2);
