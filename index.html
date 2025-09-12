@@ -290,11 +290,61 @@ const esc = (s='') => s.replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&g
 const toNumber = v => { if(typeof v!== 'string') return +v||0; const cleaned = v.replace(/[^0-9.\-]/g,''); return parseFloat(cleaned)||0; };
 const norm = s => (s||'').toLowerCase().replace(/[_\s]/g,'');
 
+// ---- Robust column + name helpers ----
+function pickColumns(headers){
+  const findIdx = keys => keys.map(k=> headers.findIndex(h=>h.includes(k))).find(i=> i!==-1);
+  return {
+    displayCol: findIdx(['playername','fullname','full_name','player','name_display','name']),
+    lastCol:    findIdx(['surname','lname','last']),
+    firstCol:   findIdx(['fname','first','forename','given']),
+    salaryCol:  findIdx(['price','salary','cost','value']),
+    posCol:     findIdx(['position','pos']),
+    teamCol:    findIdx(['club','team']),
+    statusCol:  findIdx(['lineup','status']),
+    idCol:      findIdx(['playerid','pid','id']),
+  };
+}
+function looksNumericish(s){ return /\d{3,}/.test((s||'').replace(/[.,\s]/g,'')); }
+function buildDisplayName(row, cols){
+  const d = cols.displayCol!==-1? (row[cols.displayCol]||'').trim() : '';
+  const f = cols.firstCol!==-1?   (row[cols.firstCol]  ||'').trim() : '';
+  const l = cols.lastCol!==-1?    (row[cols.lastCol]   ||'').trim() : '';
+  let name = d || (f && l ? `${f} ${l}` : (l || f));
+  if(!name || looksNumericish(name)){
+    if(f && !looksNumericish(f)) name = f;
+    if(l && !looksNumericish(l)) name = name ? `${name} ${l}` : l;
+  }
+  return (name||'').trim();
+}
+  
 function showToast(msg,type='success'){ const t=document.createElement('div'); t.className=`toast ${type}`; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000); }
 
 function parseCSV(text){
+  // Detect delimiter: default comma, fall back to semicolon if it dominates
+  const firstLine = (text.split(/\r?\n/)[0] || '');
+  const delimiter = (firstLine.split(';').length - 1) > (firstLine.split(',').length - 1) ? ';' : ',';
+
   const lines = text.split(/\r?\n/).filter(l=>l.trim().length);
-  const rows=[]; for(const line of lines){ let cur=''; let inQ=false; const out=[]; for(let i=0;i<line.length;i++){ const ch=line[i], nx=line[i+1]; if(ch==='"'){ if(inQ && nx==='"'){ cur+='"'; i++; } else { inQ=!inQ; } } else if(ch===',' && !inQ){ out.push(cur.trim()); cur=''; } else { cur+=ch; } } out.push(cur.trim()); rows.push(out); }
+  const rows = [];
+  for (const line of lines){
+    let cur = '';
+    let inQ = false;
+    const out = [];
+    for (let i=0;i<line.length;i++){
+      const ch=line[i], nx=line[i+1];
+      if (ch === '"'){
+        if (inQ && nx === '"'){ cur += '"'; i++; }
+        else { inQ = !inQ; }
+      } else if (ch === delimiter && !inQ){
+        out.push(cur.trim());
+        cur = '';
+      } else {
+        cur += ch;
+      }
+    }
+    out.push(cur.trim());
+    rows.push(out);
+  }
   return rows;
 }
 
@@ -315,16 +365,43 @@ function detectSportFromCSV(players){ if(!players||!players.length) return 'nfl'
 }
 
 async function importCSV(file){
-  const text = await file.text(); const rows = parseCSV(text); if(rows.length<2) throw new Error('CSV needs header + at least 1 data row');
+  const text = await file.text();
+  const rows = parseCSV(text);
+  if(rows.length < 2) throw new Error('CSV needs header + at least 1 data row');
+
   const headers = rows[0].map(h=>norm(h));
-  const nameCol = headers.findIndex(h=> h.includes('name') && !h.includes('first'));
-  const firstCol = headers.findIndex(h=> h.includes('fname') || h.includes('first'));
-  const salaryCol = headers.findIndex(h=> h.includes('price') || h.includes('salary'));
-  const posCol = headers.findIndex(h=> h.includes('position'));
-  const teamCol = headers.findIndex(h=> h.includes('club') || h.includes('team'));
-  const statusCol = headers.findIndex(h=> h.includes('lineup') || h.includes('status'));
-  const idCol = headers.findIndex(h=> h.includes('playerid') || h==='id');
-  if(nameCol===-1 || salaryCol===-1) throw new Error('Required columns: Name and Price/Salary');
+  const cols = pickColumns(headers);
+
+  if(cols.salaryCol===-1) throw new Error('Required "Price/Salary" column not found');
+  if(cols.displayCol===-1 && cols.firstCol===-1 && cols.lastCol===-1)
+    throw new Error('Name columns not found (need Name/Player or First/Last)');
+
+  const posMap = { DEF:'DEFENDER', MID:'MIDFIELDER', FWD:'FORWARD', GK:'GOALKEEPER' };
+  const players=[];
+  for(let i=1;i<rows.length;i++){
+    const r = rows[i]; if(!r||!r.length) continue;
+
+    const name = buildDisplayName(r, cols);
+    if(!name || looksNumericish(name)) continue;
+
+    const salary = toNumber(r[cols.salaryCol]); if(salary<=0) continue;
+    const id   = cols.idCol!==-1?   (r[cols.idCol]  ||'').trim() : `p_${i}`;
+    const team = cols.teamCol!==-1? (r[cols.teamCol]||'').trim() : '';
+
+    let position = cols.posCol!==-1? (r[cols.posCol]||'').trim().toUpperCase() : '';
+    position = posMap[position] || position;
+
+    let status = 'expected';
+    if(cols.statusCol!==-1){
+      const sv=(r[cols.statusCol]||'').toLowerCase();
+      if(sv.includes('possible')) status='possible';
+      else if(sv.includes('unexpected')||sv.includes('doubt')) status='unexpected';
+    }
+    players.push({ id, name, first:'', last:'', team, position, salary, status, selected: status==='expected', captain:false });
+  }
+  if(!players.length) throw new Error('No valid players found');
+  return players;
+}
 
   const posMap = { DEF:'DEFENDER', MID:'MIDFIELDER', FWD:'FORWARD', GK:'GOALKEEPER' };
   const players=[]; for(let i=1;i<rows.length;i++){
@@ -340,44 +417,45 @@ async function importCSV(file){
 }
 
 // Load a demo CSV by KEY (uses same pipeline as uploads)
-async function loadDemoCsv(key) {
+async function loadDemoCsv(key){
   const preset = DEMO_CSVS[key];
-  if (!preset) throw new Error(`Unknown demo key: ${key}`);
+  if(!preset) throw new Error(`Unknown demo key: ${key}`);
   const res = await fetch(preset.url);
-  if (!res.ok) throw new Error(`Failed to fetch ${preset.url}`);
-  const csvText = await res.text();
-  const rows = parseCSV(csvText);
-  if (rows.length < 2) throw new Error(`Demo "${key}" CSV appears empty.`);
-  const headers = rows[0].map(h => norm(h)); // fix: use existing normalizer
-  const nameCol      = headers.findIndex(h => h.includes('name') && !h.includes('first'));
-  const firstNameCol = headers.findIndex(h => h.includes('fname') || h.includes('first'));
-  const salaryCol    = headers.findIndex(h => h.includes('price') || h.includes('salary'));
-  const positionCol  = headers.findIndex(h => h.includes('position'));
-  const teamCol      = headers.findIndex(h => h.includes('club') || h.includes('team'));
-  const statusCol    = headers.findIndex(h => h.includes('lineup') || h.includes('status'));
-  const playerIdCol  = headers.findIndex(h => h.includes('playerid') || h === 'id');
-  if (nameCol === -1 || salaryCol === -1) throw new Error('Demo missing required columns (Name & Salary).');
+  if(!res.ok) throw new Error(`Failed to fetch ${preset.url}`);
+  const text = await res.text();
+
+  const rows = parseCSV(text);
+  if(rows.length<2) throw new Error(`Demo "${key}" CSV appears empty.`);
+
+  const headers = rows[0].map(h=>norm(h));
+  const cols = pickColumns(headers);
+  if(cols.salaryCol===-1) throw new Error('Demo missing required columns (Price/Salary).');
+
   const posMap = { DEF:'DEFENDER', MID:'MIDFIELDER', FWD:'FORWARD', GK:'GOALKEEPER' };
-  const players = [];
-  for (let i = 1; i < rows.length; i++) {
-    const r = rows[i]; if (!r || !r.length) continue;
-    const first = firstNameCol !== -1 ? (r[firstNameCol] || '').trim() : '';
-    const last  = nameCol      !== -1 ? (r[nameCol]      || '').trim() : '';
-    const display = first && last ? `${first} ${last}` : (last || first); if (!display) continue;
-    const salary = toNumber(r[salaryCol]); if (salary <= 0) continue;
-    const id     = playerIdCol !== -1 ? (r[playerIdCol] || '').trim() : `p_${i}`;
-    const team   = teamCol     !== -1 ? (r[teamCol]     || '').trim() : '';
-    let position = positionCol !== -1 ? (r[positionCol] || '').trim().toUpperCase() : '';
+  const players=[];
+  for(let i=1;i<rows.length;i++){
+    const r=rows[i]; if(!r||!r.length) continue;
+
+    const name = buildDisplayName(r, cols);
+    if(!name || looksNumericish(name)) continue;
+
+    const salary = toNumber(r[cols.salaryCol]); if(salary<=0) continue;
+    const id   = cols.idCol!==-1?   (r[cols.idCol]  ||'').trim() : `p_${i}`;
+    const team = cols.teamCol!==-1? (r[cols.teamCol]||'').trim() : '';
+
+    let position = cols.posCol!==-1? (r[cols.posCol]||'').trim().toUpperCase() : '';
     position = posMap[position] || position;
-    let status = 'expected';
-    if (statusCol !== -1) {
-      const sv = (r[statusCol] || '').toLowerCase();
-      if (sv.includes('possible')) status = 'possible';
-      else if (sv.includes('unexpected') || sv.includes('doubt')) status = 'unexpected';
+
+    let status='expected';
+    if(cols.statusCol!==-1){
+      const sv=(r[cols.statusCol]||'').toLowerCase();
+      if(sv.includes('possible')) status='possible';
+      else if(sv.includes('unexpected')||sv.includes('doubt')) status='unexpected';
     }
-    players.push({ id, name: display, first, last, team, position, salary, status, selected: status==='expected', captain: false });
+    players.push({ id, name, first:'', last:'', team, position, salary, status, selected: status==='expected', captain:false });
   }
-  return { players, sport: preset.sport, contest: preset.contest, tournament: preset.tournament, eventName: preset.eventName };
+
+  return { players, sport:preset.sport, contest:preset.contest, tournament:preset.tournament, eventName:preset.eventName };
 }
 
 function demoKeyFor(sport, contest) {
@@ -422,22 +500,222 @@ function renderLineups(){ const cfg=SPORT_CONFIGS[state.detectedSport]; const bo
   <td>${cfg.currency}${l.totalSalary}</td>
 </tr>`).join(''); document.getElementById('lineupResults').textContent = state.lineups.length; updateDownloadLink(); document.getElementById('downloadBtn').toggleAttribute('disabled', state.lineups.length===0); }
 
-function updateDownloadLink(){ const cfg=SPORT_CONFIGS[state.detectedSport]; const use=usesCaptains(state.detectedSport, state.contestType); const headers = Array.from({length: cfg.lineupSize}, (_,i)=>`Player${i+1}`); if(use) headers.push('Captain'); const rows=[headers]; state.lineups.forEach(l=>{ const names = l.players.map(p=>p.name); while(names.length<cfg.lineupSize) names.push(''); if(use) names.push(l.captain?.name||''); rows.push(names); }); const csv = rows.map(r=>r.join(',')).join('\n'); const blob=new Blob([csv],{type:'text/csv'}); document.getElementById('downloadBtn').href = URL.createObjectURL(blob); }
+function updateDownloadLink(){
+  const cfg=SPORT_CONFIGS[state.detectedSport];
+  const use=usesCaptains(state.detectedSport, state.contestType);
+  const headers = Array.from({length: cfg.lineupSize}, (_,i)=>`Player${i+1}`);
+  if(use) headers.push('Captain');
+  const rows=[headers];
+
+  state.lineups.forEach(l=>{
+    const names = l.players.map(p=>p.name);
+    while(names.length<cfg.lineupSize) names.push('');
+    if(use) names.push(l.captain?.name||'');
+    rows.push(names);
+  });
+
+  const csv = rows.map(r=>r.join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const dl=document.getElementById('downloadBtn');
+  dl.href = URL.createObjectURL(blob);
+  if(state.lineups.length>0) dl.removeAttribute('disabled'); else dl.setAttribute('disabled','');
+}
 
 // -------------------- GENERATOR --------------------
-function generateLineups(){ const cfg = SPORT_CONFIGS[state.detectedSport]; const withCap = usesCaptains(state.detectedSport, state.contestType); const pool = state.players.filter(p=>p.selected); if(pool.length < cfg.lineupSize) throw new Error(`Need ≥ ${cfg.lineupSize} selected players; have ${pool.length}.`); let caps=[]; if(withCap){ caps = pool.filter(p=>p.captain); if(!caps.length) throw new Error('Need at least 1 captain candidate.'); }
-  const N = +document.getElementById('lineupCount').value || 20; const min = +document.getElementById('minSalary').value || cfg.salaryRange[0]; const max = +document.getElementById('maxSalary').value || cfg.salaryRange[1];
-  const out=[]; const seen=new Set();
-  for(let tries=0; tries<N*12 && out.length<N; tries++){
-    let lineup=[], cap=null, total=0; const shuffled=[...pool].sort(()=>Math.random()-0.5);
-    if(withCap){ cap = caps[Math.floor(Math.random()*caps.length)]; lineup.push(cap); total += cap.salary; }
-    for(const p of shuffled){ if(lineup.length>=cfg.lineupSize) break; if(cap && p.id===cap.id) continue; if(total + p.salary <= max){ lineup.push(p); total += p.salary; } }
-    if(lineup.length===cfg.lineupSize && total>=min){ const key=lineup.map(p=>p.id).sort().join('|') + (withCap && cap? `|C:${cap.id}`:''); if(!seen.has(key)){ seen.add(key); out.push({ id:out.length+1, players:lineup, captain:cap||null, totalSalary:total }); } }
+function generateLineupsMaxSpend(){
+  const cfg = SPORT_CONFIGS[state.detectedSport];
+  const withCap = usesCaptains(state.detectedSport, state.contestType);
+
+  const pool = state.players.filter(p => p.selected).sort((a,b)=>b.salary-a.salary);
+  if (pool.length < cfg.lineupSize) throw new Error(`Need ≥ ${cfg.lineupSize} selected players; have ${pool.length}.`);
+
+  let caps = [];
+  if (withCap){
+    caps = pool.filter(p=>p.captain);
+    if (!caps.length) throw new Error('Need at least 1 captain candidate.');
+  } else {
+    caps = [null];
   }
-  if(!out.length){ const avgTop = pool.slice(0, cfg.lineupSize).reduce((s,p)=>s+p.salary,0); const hint = avgTop>max? `Hint: Max salary ${max} may be too low; try ≥ ${avgTop}.` : `Hint: Select more low-salary players or lower Min.`; throw new Error(`No valid lineups under current constraints. ${hint}`); }
+
+  const N   = +document.getElementById('lineupCount').value || 20;
+  const min = +document.getElementById('minSalary').value;
+  const max = +document.getElementById('maxSalary').value;
+
+  const uniq = new Set();
+  const out  = [];
+
+  const tryBuild = (cap) => {
+    const base=[]; let total=0;
+    if(cap){ base.push(cap); total+=cap.salary; }
+    const others = pool.filter(p=>!cap || p.id!==cap.id);
+
+    for (const p of others){
+      if (base.length>=cfg.lineupSize) break;
+      if (total + p.salary <= max){ base.push(p); total+=p.salary; }
+    }
+
+    if (base.length<cfg.lineupSize){
+      for (const p of others){
+        if (base.find(x=>x.id===p.id)) continue;
+        base.push(p); total+=p.salary;
+        if (base.length>=cfg.lineupSize) break;
+      }
+    }
+
+    base.sort((a,b)=>b.salary-a.salary);
+    while (base.length>cfg.lineupSize){
+      const iMin = base.reduce((m,p,i)=> p.salary<base[m].salary? i:m,0);
+      total -= base[iMin].salary;
+      base.splice(iMin,1);
+    }
+
+    let improved=true, guard=0;
+    while (improved && guard<200){
+      improved=false; guard++;
+      const iMin = base.reduce((m,p,i)=> p.salary<base[m].salary? i:m,0);
+      const cheapest = base[iMin];
+      const cand = others.find(p => !base.find(x=>x.id===p.id) && (total - cheapest.salary + p.salary) <= max && p.salary > cheapest.salary);
+      if (cand){
+        total = total - cheapest.salary + cand.salary;
+        base[iMin] = cand;
+        improved = true;
+      }
+    }
+
+    if (base.length===cfg.lineupSize && total>=min && total<=max){
+      const key = base.map(p=>p.id).sort().join('|') + (cap?`|C:${cap.id}`:'');
+      if (!uniq.has(key)){
+        uniq.add(key);
+        out.push({ id: out.length+1, players: base, captain: cap, totalSalary: total });
+      }
+    }
+  };
+
+  let round=0;
+  while (out.length<N && round<N*4){
+    for (const cap of caps){
+      if (out.length>=N) break;
+      tryBuild(cap);
+    }
+    round++;
+  }
+
+  if (!out.length) throw new Error('No valid lineups; lower Min or raise Max salary.');
   return out;
 }
 
+function setDynamicCapDefaults(){
+  const cfg = SPORT_CONFIGS[state.detectedSport];
+  const pool = state.players.filter(p=>p.selected).length
+    ? state.players.filter(p=>p.selected)
+    : state.players;
+
+  const top = [...pool].sort((a,b)=>b.salary-a.salary).slice(0, cfg.lineupSize);
+  const target = top.reduce((s,p)=>s+p.salary, 0);
+
+  const min = Math.max(0, Math.floor(target * 0.9)); // 90% of “best possible”
+  const max = Math.ceil(target);                      // exact top sum (rounded up)
+
+  document.getElementById('minSalary').value = min;
+  document.getElementById('maxSalary').value = max;
+}
+
+function generateLineupsMaxSpend(){
+  const cfg = SPORT_CONFIGS[state.detectedSport];
+  const withCap = usesCaptains(state.detectedSport, state.contestType);
+
+  const pool = state.players.filter(p=>p.selected).sort((a,b)=>b.salary-a.salary);
+  if (pool.length < cfg.lineupSize) {
+    throw new Error(`Need ≥ ${cfg.lineupSize} selected players; have ${pool.length}.`);
+  }
+
+  let caps=[];
+  if (withCap){
+    caps = pool.filter(p=>p.captain);
+    if (!caps.length) throw new Error('Need at least 1 captain candidate.');
+  } else {
+    caps = [null];
+  }
+
+  const N   = +document.getElementById('lineupCount').value || 20;
+  const min = +document.getElementById('minSalary').value;
+  const max = +document.getElementById('maxSalary').value;
+
+  const uniq = new Set();
+  const out  = [];
+
+  const tryBuild = (cap) => {
+    const base=[]; let total=0;
+    if (cap){ base.push(cap); total += cap.salary; }
+
+    const others = pool.filter(p=>!cap || p.id!==cap.id);
+
+    // Greedy fill with most expensive under cap
+    for (const p of others){
+      if (base.length >= cfg.lineupSize) break;
+      if (total + p.salary <= max){
+        base.push(p);
+        total += p.salary;
+      }
+    }
+
+    // If still short, fill with cheapest remaining just to reach size
+    if (base.length < cfg.lineupSize){
+      for (const p of others){
+        if (base.find(x=>x.id===p.id)) continue;
+        base.push(p);
+        total += p.salary;
+        if (base.length >= cfg.lineupSize) break;
+      }
+    }
+
+    // Improve by swapping cheapest out for a pricier one (if fits)
+    base.sort((a,b)=>b.salary-a.salary);
+    while (base.length > cfg.lineupSize){
+      const iMin = base.reduce((m,p,i)=> p.salary<base[m].salary ? i : m, 0);
+      total -= base[iMin].salary;
+      base.splice(iMin,1);
+    }
+    let improved = true, guard = 0;
+    while (improved && guard < 200){
+      improved = false; guard++;
+      const iMin = base.reduce((m,p,i)=> p.salary<base[m].salary ? i : m, 0);
+      const cheapest = base[iMin];
+      const cand = others.find(p =>
+        !base.find(x=>x.id===p.id) &&
+        (total - cheapest.salary + p.salary) <= max &&
+        p.salary > cheapest.salary
+      );
+      if (cand){
+        total = total - cheapest.salary + cand.salary;
+        base[iMin] = cand;
+        improved = true;
+      }
+    }
+
+    if (base.length === cfg.lineupSize && total >= min && total <= max){
+      const key = base.map(p=>p.id).sort().join('|') + (cap ? `|C:${cap.id}` : '');
+      if (!uniq.has(key)){
+        uniq.add(key);
+        out.push({ id: out.length+1, players: base, captain: cap, totalSalary: total });
+      }
+    }
+  };
+
+  let round = 0;
+  while (out.length < N && round < N*4){
+    for (const cap of caps){
+      if (out.length >= N) break;
+      tryBuild(cap);
+    }
+    round++;
+  }
+
+  if (!out.length) throw new Error('No valid lineups; lower Min or raise Max salary.');
+  return out;
+}
+
+  
 // -------------------- EVENTS --------------------
 const uploadZone = document.getElementById('uploadZone'); const fileInput = document.getElementById('fileInput');
 uploadZone.addEventListener('click',()=>fileInput.click());
@@ -491,10 +769,22 @@ document.getElementById('backToSport').addEventListener('click',()=>setStep(2));
 // Contest selection
 const optFull=document.getElementById('optFull'); const optShow=document.getElementById('optShow');
 [optFull,optShow].forEach(el=> el.addEventListener('click',()=>{ [optFull,optShow].forEach(x=>x.classList.remove('selected')); el.classList.add('selected'); state.contestType = el.dataset.type; }));
-document.getElementById('confirmContest').addEventListener('click',()=>{ const cfg=SPORT_CONFIGS[state.detectedSport]; document.getElementById('statSport').textContent = cfg.name; document.getElementById('statContest').textContent = state.contestType==='showdown'? 'Showdown':'Full slate'; document.getElementById('minSalary').value = cfg.salaryRange[0]; document.getElementById('maxSalary').value = cfg.salaryRange[1]; derivePositionOptions(); updateStats(); renderPlayers(); refreshCaptainButtons(); setStep(4); });
+document.getElementById('confirmContest').addEventListener('click',()=>{
+  const cfg = SPORT_CONFIGS[state.detectedSport];
+  document.getElementById('statSport').textContent = cfg.name;
+  document.getElementById('statContest').textContent = state.contestType==='showdown' ? 'Showdown' : 'Full slate';
+
+  setDynamicCapDefaults();   // ← dynamic min/max based on this slate
+
+  derivePositionOptions();
+  updateStats();
+  renderPlayers();
+  refreshCaptainButtons();
+  setStep(4);
+});
 
 // Generate
-document.getElementById('generateBtn').addEventListener('click',()=>{ try{ state.lineups = generateLineups(); renderLineups(); showToast(`Generated ${state.lineups.length} lineups!`,'success'); } catch(err){ showToast(err.message,'error'); } });
+document.getElementById('generateBtn').addEventListener('click',()=>{   try{     state.lineups = generateLineupsMaxSpend();   // ← use max-spend     renderLineups();     showToast(`Generated ${state.lineups.length} lineups!`,'success');   } catch(err){     showToast(err.message,'error');   } });
 
 // Player controls
 document.getElementById('selectAll').addEventListener('click',()=>{ state.players.forEach(p=>p.selected=true); updateStats(); renderPlayers(); });
