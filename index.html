@@ -364,18 +364,7 @@ function detectSportFromCSV(players){ if(!players||!players.length) return 'nfl'
   return 'football';
 }
 
-async function importCSV(file){
-  const text = await file.text();
-  const rows = parseCSV(text);
-  if(rows.length < 2) throw new Error('CSV needs header + at least 1 data row');
-
-  const headers = rows[0].map(h=>norm(h));
-  const cols = pickColumns(headers);
-
-  if(cols.salaryCol===-1) throw new Error('Required "Price/Salary" column not found');
-  if(cols.displayCol===-1 && cols.firstCol===-1 && cols.lastCol===-1)
-    throw new Error('Name columns not found (need Name/Player or First/Last)');
-
+function rowsToPlayers(rows, cols){
   const posMap = { DEF:'DEFENDER', MID:'MIDFIELDER', FWD:'FORWARD', GK:'GOALKEEPER' };
   const players=[];
   for(let i=1;i<rows.length;i++){
@@ -391,7 +380,7 @@ async function importCSV(file){
     let position = cols.posCol!==-1? (r[cols.posCol]||'').trim().toUpperCase() : '';
     position = posMap[position] || position;
 
-    let status = 'expected';
+    let status='expected';
     if(cols.statusCol!==-1){
       const sv=(r[cols.statusCol]||'').toLowerCase();
       if(sv.includes('possible')) status='possible';
@@ -399,6 +388,22 @@ async function importCSV(file){
     }
     players.push({ id, name, first:'', last:'', team, position, salary, status, selected: status==='expected', captain:false });
   }
+  return players;
+}
+
+async function importCSV(file){
+  const text = await file.text();
+  const rows = parseCSV(text);
+  if(rows.length < 2) throw new Error('CSV needs header + at least 1 data row');
+
+  const headers = rows[0].map(h=>norm(h));
+  const cols = pickColumns(headers);
+
+  if(cols.salaryCol===-1) throw new Error('Required "Price/Salary" column not found');
+  if(cols.displayCol===-1 && cols.firstCol===-1 && cols.lastCol===-1)
+    throw new Error('Name columns not found (need Name/Player or First/Last)');
+
+  const players = rowsToPlayers(rows, cols);
   if(!players.length) throw new Error('No valid players found');
   return players;
 }
@@ -419,29 +424,7 @@ async function loadDemoCsv(key){
   const cols = pickColumns(headers);
   if(cols.salaryCol===-1) throw new Error('Demo missing required columns (Price/Salary).');
 
-  const posMap = { DEF:'DEFENDER', MID:'MIDFIELDER', FWD:'FORWARD', GK:'GOALKEEPER' };
-  const players=[];
-  for(let i=1;i<rows.length;i++){
-    const r=rows[i]; if(!r||!r.length) continue;
-
-    const name = buildDisplayName(r, cols);
-    if(!name || looksNumericish(name)) continue;
-
-    const salary = toNumber(r[cols.salaryCol]); if(salary<=0) continue;
-    const id   = cols.idCol!==-1?   (r[cols.idCol]  ||'').trim() : `p_${i}`;
-    const team = cols.teamCol!==-1? (r[cols.teamCol]||'').trim() : '';
-
-    let position = cols.posCol!==-1? (r[cols.posCol]||'').trim().toUpperCase() : '';
-    position = posMap[position] || position;
-
-    let status='expected';
-    if(cols.statusCol!==-1){
-      const sv=(r[cols.statusCol]||'').toLowerCase();
-      if(sv.includes('possible')) status='possible';
-      else if(sv.includes('unexpected')||sv.includes('doubt')) status='unexpected';
-    }
-    players.push({ id, name, first:'', last:'', team, position, salary, status, selected: status==='expected', captain:false });
-  }
+  const players = rowsToPlayers(rows, cols);
 
   return { players, sport:preset.sport, contest:preset.contest, tournament:preset.tournament, eventName:preset.eventName };
 }
