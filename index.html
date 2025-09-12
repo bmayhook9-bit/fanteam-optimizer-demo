@@ -627,6 +627,7 @@ uploadZone.addEventListener('dragleave',()=>uploadZone.classList.remove('dragove
 uploadZone.addEventListener('drop',e=>{ e.preventDefault(); uploadZone.classList.remove('dragover'); const f=e.dataTransfer.files; if(f.length) processFile(f[0]); });
 fileInput.addEventListener('change',e=>{ if(e.target.files.length) processFile(e.target.files[0]); });
 
+// Parse uploaded CSV and exit demo mode
 async function processFile(file) {
   try {
     const players = await importCSV(file);
