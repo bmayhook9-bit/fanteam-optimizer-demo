@@ -403,18 +403,6 @@ async function importCSV(file){
   return players;
 }
 
-  const posMap = { DEF:'DEFENDER', MID:'MIDFIELDER', FWD:'FORWARD', GK:'GOALKEEPER' };
-  const players=[]; for(let i=1;i<rows.length;i++){
-    const r = rows[i]; if(!r||!r.length) continue; const first = firstCol!==-1? (r[firstCol]||'').trim() : ''; const last = nameCol!==-1? (r[nameCol]||'').trim() : ''; const display = first && last? `${first} ${last}` : (last||first); if(!display) continue;
-    const salary = toNumber(r[salaryCol]); if(salary<=0) continue; const id = idCol!==-1? (r[idCol]||'').trim() : `p_${i}`; const team = teamCol!==-1? (r[teamCol]||'').trim() : '';
-    let position = posCol!==-1? (r[posCol]||'').trim().toUpperCase() : '';
-    position = posMap[position] || position;
-    let status = 'expected'; if(statusCol!==-1){ const sv = (r[statusCol]||'').toLowerCase(); if(sv.includes('possible')) status='possible'; else if(sv.includes('unexpected')||sv.includes('doubt')) status='unexpected'; }
-    players.push({ id, name:display, first, last, team, position, salary, status, selected: status==='expected', captain:false });
-  }
-  if(!players.length) throw new Error('No valid players found');
-  return players;
-}
 
 // Load a demo CSV by KEY (uses same pipeline as uploads)
 async function loadDemoCsv(key){
