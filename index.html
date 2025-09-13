@@ -96,6 +96,10 @@ hr.sep{border:none;border-top:1px solid #1b2131;margin:12px 0}
       <div class="upload-text">Drop CSV here or click to browse</div>
       <input type="file" id="fileInput" accept=".csv" hidden />
     </div>
+    <div class="upload-zone" id="uploadLocked" style="display:none">
+      <div class="upload-icon">🔒</div>
+      <div class="upload-text">Upload your CSV with PRO tier</div>
+    </div>
     <div class="badge">Free demo mode available — no account required</div>
     <div style="margin-top:12px" class="btn-group">
       <button class="btn" id="demoBtn">Try Demo Data (Cycle sports)</button>
@@ -216,6 +220,7 @@ hr.sep{border:none;border-top:1px solid #1b2131;margin:12px 0}
       <button class="btn" id="selectExpected">Expected only</button>
       <button class="btn" id="captainAll">Captain all</button>
       <button class="btn" id="importProj">Import projections</button>
+      <button class="btn" id="importLocked" style="display:none">Import projections (PRO)</button>
     </div>
     <input type="file" id="projInput" accept=".csv" hidden />
 
@@ -267,12 +272,12 @@ hr.sep{border:none;border-top:1px solid #1b2131;margin:12px 0}
 
 // Real demo CSV datasets served from /demo (Vercel/static hosting)
 const DEMO_CSVS = {
-  nfl_full: { label:'NFL — Full slate', sport:'nfl', contest:'full-slate', tournament:'Tournament 1008839 (413 players)', eventName:'NFL Example Slate', url:'./demo/1008839_players_20250906222543.csv' },
-  nfl_show: { label:'NFL — Showdown', sport:'nfl', contest:'showdown', tournament:'Tournament 1009037 (33 players)', eventName:'NFL Showdown (Single Game)', url:'./demo/1009037_players_20250908102649.csv' },
-  fb_full:  { label:'Football — Full slate', sport:'football', contest:'full-slate', tournament:'Tournament 1009899 (845 players)', eventName:'Champions League Night', url:'./demo/1009899_players_20250908161603.csv' },
-  fb_show:  { label:'Football — Showdown', sport:'football', contest:'showdown', tournament:'Tournament 1010808 (51 players)', eventName:'Football Showdown', url:'./demo/1010808_players_20250908161619.csv' },
-  f1_full:  { label:'F1 — Race weekend', sport:'f1', contest:'full-slate', tournament:'Tournament 1008665 (29 players)', eventName:'F1 Race Weekend', url:'./demo/1008665_players_20250906172857.csv' },
-  golf_full:{ label:'Golf — PGA tournament', sport:'golf', contest:'full-slate', tournament:'Tournament 1000000 (585 players)', eventName:'PGA Tournament', url:'./demo/1000000_players_20250815093906.csv' }
+  nfl_full: { label:'NFL — Full slate', sport:'nfl', contest:'full-slate', tournament:'Tournament 1008839 (413 players)', eventName:'NFL Example Slate', url:'/demo/1008839_players_20250906222543.csv' },
+  nfl_show: { label:'NFL — Showdown', sport:'nfl', contest:'showdown', tournament:'Tournament 1009037 (33 players)', eventName:'NFL Showdown (Single Game)', url:'/demo/1009037_players_20250908102649.csv' },
+  fb_full:  { label:'Football — Full slate', sport:'football', contest:'full-slate', tournament:'Tournament 1009899 (845 players)', eventName:'Champions League Night', url:'/demo/1009899_players_20250908161603.csv' },
+  fb_show:  { label:'Football — Showdown', sport:'football', contest:'showdown', tournament:'Tournament 1010808 (51 players)', eventName:'Football Showdown', url:'/demo/1010808_players_20250908161619.csv' },
+  f1_full:  { label:'F1 — Race weekend', sport:'f1', contest:'full-slate', tournament:'Tournament 1008665 (29 players)', eventName:'F1 Race Weekend', url:'/demo/1008665_players_20250906172857.csv' },
+  golf_full:{ label:'Golf — PGA tournament', sport:'golf', contest:'full-slate', tournament:'Tournament 1000000 (585 players)', eventName:'PGA Tournament', url:'/demo/1000000_players_20250815093906.csv' }
 };
 
 // Rotation order for the demo button (array of KEYS)
@@ -287,7 +292,28 @@ const SPORT_CONFIGS = {
   f1:{ name:'Formula 1', icon:'🏎️', lineupSize:6, positions:['DRIVER','CONSTRUCTOR'], salaryRange:[98,102], currency:'£', fullSlateSize:34, showdownSize:34 }
 };
 
-const state = { currentStep:1, players:[], lineups:[], detectedSport:'nfl', contestType:'full-slate', currentDemoSport:'nfl', datasetMeta:{ tournament:'', eventName:'' }, isDemo:false, statusFilter:'' };
+const state = { currentStep:1, players:[], lineups:[], detectedSport:'nfl', contestType:'full-slate', currentDemoSport:'nfl', datasetMeta:{ tournament:'', eventName:'' }, isDemo:false, statusFilter:'', userTier:'FREE' };
+
+function isProTier(){ return state.userTier==='PRO' || state.userTier==='ELITE'; }
+async function loadUserTier(){
+  try{
+    const res = await fetch('/api/user');
+    const data = await res.json();
+    state.userTier = data.tier || 'FREE';
+  }catch{
+    state.userTier = 'FREE';
+  }
+}
+function applyTier(){
+  if(isProTier()) return;
+  const uz=document.getElementById('uploadZone');
+  const ul=document.getElementById('uploadLocked');
+  if(uz && ul){ uz.style.display='none'; ul.style.display='block'; }
+  const ip=document.getElementById('importProj');
+  const il=document.getElementById('importLocked');
+  if(ip && il){ ip.style.display='none'; il.style.display='inline-flex'; }
+}
+function promptUpgrade(feature){ showToast(`${feature} requires a PRO account.`, 'error'); }
 
 // -------------------- (Optional legacy synthetic demo, unused) --------------------
 // retained for future offline fallback
@@ -653,10 +679,10 @@ function setDynamicCapDefaults(){
 
 // -------------------- EVENTS --------------------
 const uploadZone = document.getElementById('uploadZone'); const fileInput = document.getElementById('fileInput');
-uploadZone.addEventListener('click',()=>fileInput.click());
-uploadZone.addEventListener('dragover',e=>{e.preventDefault(); uploadZone.classList.add('dragover');});
+uploadZone.addEventListener('click',()=>{ if(!isProTier()) return promptUpgrade('Upload CSV'); fileInput.click(); });
+uploadZone.addEventListener('dragover',e=>{ e.preventDefault(); if(isProTier()) uploadZone.classList.add('dragover'); });
 uploadZone.addEventListener('dragleave',()=>uploadZone.classList.remove('dragover'));
-uploadZone.addEventListener('drop',e=>{ e.preventDefault(); uploadZone.classList.remove('dragover'); const f=e.dataTransfer.files; if(f.length) processFile(f[0]); });
+uploadZone.addEventListener('drop',e=>{ e.preventDefault(); uploadZone.classList.remove('dragover'); if(!isProTier()) return promptUpgrade('Upload CSV'); const f=e.dataTransfer.files; if(f.length) processFile(f[0]); });
 fileInput.addEventListener('change',e=>{ if(e.target.files.length) processFile(e.target.files[0]); });
 
 async function processFile(file) {
@@ -765,8 +791,10 @@ document.getElementById('positionFilter').addEventListener('change',renderPlayer
 document.getElementById('teamFilter').addEventListener('change',renderPlayers);
 document.getElementById('salarySort').addEventListener('change',renderPlayers);
 
-document.getElementById('importProj').addEventListener('click',()=> document.getElementById('projInput').click());
-document.getElementById('projInput').addEventListener('change',e=>{ if(e.target.files.length) importProjections(e.target.files[0]); });
+document.getElementById('importProj').addEventListener('click',()=>{ if(!isProTier()) return promptUpgrade('Import projections'); document.getElementById('projInput').click(); });
+document.getElementById('projInput').addEventListener('change',e=>{ if(e.target.files.length){ if(!isProTier()) return promptUpgrade('Import projections'); importProjections(e.target.files[0]); } });
+document.getElementById('uploadLocked').addEventListener('click',()=>promptUpgrade('Upload CSV'));
+document.getElementById('importLocked').addEventListener('click',()=>promptUpgrade('Import projections'));
 
 // Expose for checkboxes
 window.toggleSelected = id => { const p=state.players.find(x=>x.id===id); if(!p) return; p.selected=!p.selected; if(!p.selected) p.captain=false; updateStats(); renderPlayers(); };
@@ -782,7 +810,9 @@ window.toggleCaptain = id => { const p=state.players.find(x=>x.id===id); if(!p) 
 })();
 
 // init
-(function init(){ setStep(1); console.log('FanTeam DFS Optimizer — MVP v2 ready'); })();
+(function init(){
+  loadUserTier().then(()=>{ applyTier(); setStep(1); console.log('FanTeam DFS Optimizer — MVP v2 ready'); });
+})();
 </script>
 </body>
 </html>
