@@ -1,5 +1,5 @@
 # fanteam-optimizer-demo
-FanTeam Optimiser TOol
+FanTeam Optimizer Tool
 
 ## Deployment
 
