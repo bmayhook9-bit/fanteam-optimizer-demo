@@ -1,4 +1,3 @@
 node_modules/
-server/users.db
-
 dist/
+server/users.db
