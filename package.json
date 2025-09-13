@@ -5,7 +5,8 @@
   "main": "server/server.js",
   "scripts": {
     "test": "node tests/buildDisplayName.test.js",
-    "start": "node server/server.js"
+    "start": "node server/server.js",
+    "build": "npx --yes vite build ui --outDir ../dist"
   },
   "keywords": [],
   "author": "",
