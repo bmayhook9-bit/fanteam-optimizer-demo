@@ -4,7 +4,7 @@
   "description": "FanTeam Optimiser TOol",
   "main": "server/server.js",
   "scripts": {
-    "test": "node tests/buildDisplayName.test.js",
+    "test": "vitest",
     "start": "node server/server.js"
   },
   "keywords": [],
@@ -16,5 +16,8 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
   }
 }
