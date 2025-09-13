@@ -1,3 +1,4 @@
 node_modules/
 server/users.db
-dist/
+public/index.html
+public/assets/
