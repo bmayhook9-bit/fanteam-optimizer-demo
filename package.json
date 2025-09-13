@@ -4,7 +4,7 @@
   "description": "FanTeam Optimiser TOol",
   "main": "server/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node tests/buildDisplayName.test.js",
     "start": "node server/server.js"
   },
   "keywords": [],
