@@ -8,7 +8,6 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..')));
-app.use('/demo', express.static(path.join(__dirname, '..', 'public', 'demo')));
 
 function authenticate(req, res, next) {
   const header = req.headers['authorization'];
