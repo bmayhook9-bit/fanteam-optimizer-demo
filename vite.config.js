@@ -1,10 +1,8 @@
-import { resolve } from 'path';
+import { defineConfig } from 'vite';
 
-export default {
+export default defineConfig({
+  root: 'public',
   build: {
-    outDir: 'dist',
-    rollupOptions: {
-      input: resolve(__dirname, 'public/index.html')
-    }
+    outDir: '../dist'
   }
-};
+});
