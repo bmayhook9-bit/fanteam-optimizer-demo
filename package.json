@@ -2,10 +2,10 @@
   "name": "fanteam-optimizer-demo",
   "version": "1.0.0",
   "description": "FanTeam Optimiser TOol",
-  "main": "server/server.js",
+  "main": "server/server.cjs",
   "scripts": {
     "test": "vitest",
-    "start": "node server/server.js"
+    "start": "node server/server.cjs"
   },
   "keywords": [],
   "author": "",
