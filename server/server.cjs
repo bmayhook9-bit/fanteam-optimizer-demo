@@ -4,7 +4,10 @@ const jwt = require('jsonwebtoken');
 const authRoutes = require('./routes/auth');
 
 const app = express();
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'dist')));
