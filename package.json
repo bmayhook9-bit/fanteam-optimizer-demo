@@ -1,7 +1,7 @@
 {
   "name": "fanteam-optimizer-demo",
   "version": "1.0.0",
-  "description": "FanTeam Optimiser TOol",
+  "description": "FanTeam Optimiser Tool",
   "main": "server/server.js",
   "scripts": {
     "test": "vitest",
