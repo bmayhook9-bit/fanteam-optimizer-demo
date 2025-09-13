@@ -82,13 +82,20 @@ hr.sep{border:none;border-top:1px solid #1b2131;margin:12px 0}
 </header>
 <div class="container" id="authSection">
   <div id="loginForm">
-    <input type="text" id="username" placeholder="Username">
-    <input type="password" id="password" placeholder="Password">
-    <select id="tier"><option value="free">Free</option><option value="pro">Pro</option><option value="elite">Elite</option></select>
+    <label for="username">Username</label>
+    <input type="text" id="username" placeholder="Username" />
+    <label for="password">Password</label>
+    <input type="password" id="password" placeholder="Password" />
+    <label for="tier">Tier</label>
+    <select id="tier">
+      <option value="free">Free</option>
+      <option value="pro">Pro</option>
+      <option value="elite">Elite</option>
+    </select>
     <button class="btn" id="registerBtn">Register</button>
     <button class="btn" id="loginBtn">Login</button>
   </div>
-  <div id="userInfo" style="display:none;">Logged in as <span id="userDisplay"></span> (<span id="tierDisplay"></span>)</div>
+  <div id="userInfo" style="display:none;" tabindex="-1">Logged in as <span id="userDisplay"></span> (<span id="tierDisplay"></span>)</div>
 </div>
 
 

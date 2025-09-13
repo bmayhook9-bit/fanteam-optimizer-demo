@@ -2,6 +2,9 @@ import { showToast } from './src/ui/toast.js';
 // Simple authentication client
 let authToken = null;
 let userTier = 'free';
+const usernameInput = document.getElementById('username');
+const userInfo = document.getElementById('userInfo');
+if (usernameInput) usernameInput.focus();
 
 async function authRequest(path, body) {
   const res = await fetch(path, {
@@ -32,7 +35,8 @@ function updateUser(username) {
   document.getElementById('userDisplay').textContent = username;
   document.getElementById('tierDisplay').textContent = userTier;
   document.getElementById('loginForm').style.display = 'none';
-  document.getElementById('userInfo').style.display = 'block';
+  userInfo.style.display = 'block';
+  userInfo.focus();
 }
 
 async function handleAuth(endpoint) {
@@ -48,6 +52,7 @@ async function handleAuth(endpoint) {
     showToast('Authenticated', 'success');
   } catch (err) {
     showToast(err.message, 'error');
+    if (usernameInput) usernameInput.focus();
   }
 }
 

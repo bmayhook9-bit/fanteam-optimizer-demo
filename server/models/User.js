@@ -1,7 +1,8 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-const db = new sqlite3.Database(path.join(__dirname, '../users.db'));
+const dbPath = process.env.USERS_DB || path.join(__dirname, '../users.db');
+const db = new sqlite3.Database(dbPath);
 
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS users (
@@ -28,6 +29,11 @@ module.exports = {
         if (err) return reject(err);
         resolve(row);
       });
+    });
+  },
+  close() {
+    return new Promise((resolve, reject) => {
+      db.close((err) => (err ? reject(err) : resolve()));
     });
   }
 };
