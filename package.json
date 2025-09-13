@@ -5,12 +5,15 @@
   "main": "server/server.js",
   "scripts": {
     "test": "vitest",
-    "start": "node server/server.js"
+    "start": "node server/server.js",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "dependencies": {
     "bcrypt": "^6.0.0",
     "express": "^5.1.0",
@@ -18,6 +21,7 @@
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "vite": "^7.1.5"
   }
 }
