@@ -77,6 +77,17 @@ hr.sep{border:none;border-top:1px solid #1b2131;margin:12px 0}
   <h1>FanTeam DFS Optimizer — MVP</h1>
   <div class="subtitle">European-focused • Transparent algorithms • Multi-sport • FanTeam-ready</div>
 </header>
+<div class="container" id="authSection">
+  <div id="loginForm">
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <select id="tier"><option value="free">Free</option><option value="pro">Pro</option><option value="elite">Elite</option></select>
+    <button class="btn" id="registerBtn">Register</button>
+    <button class="btn" id="loginBtn">Login</button>
+  </div>
+  <div id="userInfo" style="display:none;">Logged in as <span id="userDisplay"></span> (<span id="tierDisplay"></span>)</div>
+</div>
+
 
 <div class="container">
   <!-- Progress -->
@@ -784,5 +795,6 @@ window.toggleCaptain = id => { const p=state.players.find(x=>x.id===id); if(!p) 
 // init
 (function init(){ setStep(1); console.log('FanTeam DFS Optimizer — MVP v2 ready'); })();
 </script>
+<script src="auth.js"></script>
 </body>
 </html>
