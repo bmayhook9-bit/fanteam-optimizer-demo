@@ -744,6 +744,23 @@ function syncContestSelection(){
   [optFull,optShow].forEach(x=>x.classList.remove('selected'));
   (state.contestType==='showdown'?optShow:optFull).classList.add('selected');
 }
+document.getElementById('sportSelector').addEventListener('change', async e => {
+  state.detectedSport = e.target.value;
+  if(!state.isDemo) return;
+  try {
+    const desired = state.contestType;
+    const key = demoKeyFor(state.detectedSport, desired) || demoKeyFor(state.detectedSport, 'full-slate');
+    if(key){
+      const demo = await loadDemoCsv(key);
+      state.players = demo.players;
+      state.contestType = demo.contest;
+      state.datasetMeta = { tournament: demo.tournament, eventName: demo.eventName };
+      state.currentDemoSport = demo.sport;
+      updateDetection();
+      syncContestSelection();
+    }
+  } catch(err){ showToast(err.message,'error'); }
+});
 document.getElementById('confirmSport').addEventListener('click', async () => {
   try {
     state.detectedSport = document.getElementById('sportSelector').value;
