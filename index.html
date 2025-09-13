@@ -328,7 +328,16 @@ function buildDisplayName(row, cols){
   const d = cols.displayCol!==-1? (row[cols.displayCol]||'').trim() : '';
   const f = cols.firstCol!==-1?   (row[cols.firstCol]  ||'').trim() : '';
   const l = cols.lastCol!==-1?    (row[cols.lastCol]   ||'').trim() : '';
-  let name = d || (f && l ? `${f} ${l}` : (l || f));
+
+  let name = '';
+  if(d){
+    // If display column has only a given name, append last name when available
+    if(!d.includes(' ') && l && !looksNumericish(l)) name = `${d} ${l}`;
+    else name = d;
+  } else {
+    name = (f && l ? `${f} ${l}` : (l || f));
+  }
+
   if(!name || looksNumericish(name)){
     if(f && !looksNumericish(f)) name = f;
     if(l && !looksNumericish(l)) name = name ? `${name} ${l}` : l;
