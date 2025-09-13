@@ -6,10 +6,10 @@
   "scripts": {
     "test": "vitest",
     "start": "node dist/server/server.js",
-    "lint": "eslint \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern",
+    "lint": "eslint .",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
-    "build": "tsc"
+    "build": "vite build"
   },
   "keywords": [],
   "author": "",
