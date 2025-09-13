@@ -1,3 +1,5 @@
+import { showToast } from './ui.js';
+
 // Simple authentication client
 let authToken = null;
 let userTier = 'free';
