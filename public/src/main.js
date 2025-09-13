@@ -1,4 +1,5 @@
 import { showToast, generateLineupsMaxSpend, initUpload } from './ui/index.js';
+import { buildDisplayName, looksNumericish } from '../../src/utils/displayName.js';
 
 // -------------------- CONFIG --------------------
 
@@ -50,27 +51,6 @@ function pickColumns(headers){
     statusCol:  findIdx(['lineup','status']),
     idCol:      findIdx(['playerid','pid','id']),
   };
-}
-function looksNumericish(s){ return /\d{3,}/.test((s||'').replace(/[.,\s]/g,'')); }
-function buildDisplayName(row, cols){
-  const d = cols.displayCol!==-1? (row[cols.displayCol]||'').trim() : '';
-  const f = cols.firstCol!==-1?   (row[cols.firstCol]  ||'').trim() : '';
-  const l = cols.lastCol!==-1?    (row[cols.lastCol]   ||'').trim() : '';
-
-  let name = '';
-  if(d){
-    // If display column has only a given name, append last name when available
-    if(!d.includes(' ') && l && !looksNumericish(l)) name = `${d} ${l}`;
-    else name = d;
-  } else {
-    name = (f && l ? `${f} ${l}` : (l || f));
-  }
-
-  if(!name || looksNumericish(name)){
-    if(f && !looksNumericish(f)) name = f;
-    if(l && !looksNumericish(l)) name = name ? `${name} ${l}` : l;
-  }
-  return (name||'').trim();
 }
   
 function parseCSV(text){
