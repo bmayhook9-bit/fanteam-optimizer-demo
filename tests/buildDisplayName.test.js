@@ -1,4 +1,4 @@
-import assert from 'node:assert';
+import assert from 'node:assert/strict';
 
 function looksNumericish(s) {
   return /\d{3,}/.test((s || '').replace(/[.,\s]/g, ''));
