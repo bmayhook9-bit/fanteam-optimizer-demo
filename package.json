@@ -5,7 +5,8 @@
   "main": "server/server.js",
   "scripts": {
     "test": "vitest",
-    "start": "node server/server.js"
+    "start": "node server/server.js",
+    "build": "vite build"
   },
   "keywords": [],
   "author": "",
