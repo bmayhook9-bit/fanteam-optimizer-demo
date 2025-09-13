@@ -4,7 +4,7 @@
   "description": "FanTeam Optimiser TOol",
   "main": "server/server.cjs",
   "scripts": {
-    "test": "node tests/buildDisplayName.test.cjs",
+    "test": "node tests/buildDisplayName.test.js",
     "start": "node server/server.cjs",
     "build": "vite build"
   },

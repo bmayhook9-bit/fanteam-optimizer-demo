@@ -1,24 +1,27 @@
-const assert = require('assert');
+import assert from 'node:assert';
 
-function looksNumericish(s){ return /\d{3,}/.test((s||'').replace(/[.,\s]/g,'')); }
-function buildDisplayName(row, cols){
-  const d = cols.displayCol!==-1? (row[cols.displayCol]||'').trim() : '';
-  const f = cols.firstCol!==-1?   (row[cols.firstCol]  ||'').trim() : '';
-  const l = cols.lastCol!==-1?    (row[cols.lastCol]   ||'').trim() : '';
+function looksNumericish(s) {
+  return /\d{3,}/.test((s || '').replace(/[.,\s]/g, ''));
+}
+
+function buildDisplayName(row, cols) {
+  const d = cols.displayCol !== -1 ? (row[cols.displayCol] || '').trim() : '';
+  const f = cols.firstCol !== -1 ? (row[cols.firstCol] || '').trim() : '';
+  const l = cols.lastCol !== -1 ? (row[cols.lastCol] || '').trim() : '';
 
   let name = '';
-  if(d){
-    if(!d.includes(' ') && l && !looksNumericish(l)) name = `${d} ${l}`;
+  if (d) {
+    if (!d.includes(' ') && l && !looksNumericish(l)) name = `${d} ${l}`;
     else name = d;
   } else {
-    name = (f && l ? `${f} ${l}` : (l || f));
+    name = f && l ? `${f} ${l}` : l || f;
   }
 
-  if(!name || looksNumericish(name)){
-    if(f && !looksNumericish(f)) name = f;
-    if(l && !looksNumericish(l)) name = name ? `${name} ${l}` : l;
+  if (!name || looksNumericish(name)) {
+    if (f && !looksNumericish(f)) name = f;
+    if (l && !looksNumericish(l)) name = name ? `${name} ${l}` : l;
   }
-  return (name||'').trim();
+  return (name || '').trim();
 }
 
 // Test 1: display column already has full name
