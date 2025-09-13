@@ -60,6 +60,8 @@ label{display:block;margin:6px 0 4px;color:#aab2cd;font-size:12px}
 .table{width:100%;border-collapse:collapse;font-size:12px}
 .table th,.table td{padding:6px 8px;border-bottom:1px solid #20283a;text-align:left}
 .table th{position:sticky;top:0;background:#0f1524;z-index:1;color:#c8d2ef;font-weight:600;font-size:11px}
+.table th.sortable{cursor:pointer}
+.table th.sortable.active{color:var(--accent)}
 .row-expected{background:rgba(47,224,137,.06);border-left:3px solid var(--success)}
 .row-possible{background:rgba(255,184,108,.06);border-left:3px solid var(--warn)}
 .row-unexpected{background:rgba(255,107,107,.06);border-left:3px solid var(--err)}
@@ -216,11 +218,6 @@ hr.sep{border:none;border-top:1px solid #1b2131;margin:12px 0}
       <input id="searchPlayers" type="text" placeholder="Search by name..." style="max-width:180px" />
       <select id="positionFilter" style="max-width:120px"><option value="">All positions</option></select>
       <select id="teamFilter" style="max-width:120px"><option value="">All teams</option></select>
-      <select id="salarySort" style="max-width:130px">
-        <option value="">Sort salary</option>
-        <option value="asc">Salary ↑</option>
-        <option value="desc">Salary ↓</option>
-      </select>
     </div>
     <div class="btn-group" style="margin-bottom:8px">
       <button class="btn" id="selectAll">Select all</button>
@@ -240,8 +237,8 @@ hr.sep{border:none;border-top:1px solid #1b2131;margin:12px 0}
             <th>Player</th>
             <th>Pos</th>
             <th>Team</th>
-            <th>Proj</th>
-            <th>Salary</th>
+            <th id="thProj" class="sortable">Proj</th>
+            <th id="thSalary" class="sortable">Salary</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -299,7 +296,7 @@ const SPORT_CONFIGS = {
   f1:{ name:'Formula 1', icon:'🏎️', lineupSize:6, positions:['DRIVER','CONSTRUCTOR'], salaryRange:[98,102], currency:'£', fullSlateSize:34, showdownSize:34 }
 };
 
-const state = { currentStep:1, players:[], lineups:[], detectedSport:'nfl', contestType:'full-slate', currentDemoSport:'nfl', datasetMeta:{ tournament:'', eventName:'' }, isDemo:false, statusFilter:'' };
+const state = { currentStep:1, players:[], lineups:[], detectedSport:'nfl', contestType:'full-slate', currentDemoSport:'nfl', datasetMeta:{ tournament:'', eventName:'' }, isDemo:false, statusFilter:'', sort:{ field:'', dir:'asc' } };
 
 // -------------------- (Optional legacy synthetic demo, unused) --------------------
 // retained for future offline fallback
@@ -504,7 +501,7 @@ function deriveFilters(){
   teamSel.innerHTML = '<option value="">All teams</option>';
   const teams=[...new Set(state.players.map(p=>p.team).filter(Boolean))].sort();
   teams.forEach(team=>{ const o=document.createElement('option'); o.value=team; o.textContent=team; teamSel.appendChild(o); });
-  document.getElementById('salarySort').value='';
+  state.sort={ field:'', dir:'asc' };
   state.statusFilter='';
 }
 
@@ -512,7 +509,6 @@ function filteredPlayers(){
   const q=document.getElementById('searchPlayers').value.toLowerCase();
   const pf=document.getElementById('positionFilter').value;
   const tf=document.getElementById('teamFilter').value;
-  const sf=document.getElementById('salarySort').value;
   const status=state.statusFilter;
   let arr = state.players.filter(p=>{
     const s=!q || p.name.toLowerCase().includes(q);
@@ -521,12 +517,32 @@ function filteredPlayers(){
     const st=!status || p.status===status;
     return s && m && t && st;
   });
-  if(sf==='asc') arr.sort((a,b)=>a.salary-b.salary);
-  else if(sf==='desc') arr.sort((a,b)=>b.salary-a.salary);
+  if(state.sort.field){
+    const dir = state.sort.dir==='asc'?1:-1;
+    if(state.sort.field==='salary') arr.sort((a,b)=>(a.salary-b.salary)*dir);
+    else if(state.sort.field==='proj') arr.sort((a,b)=>((a.projection??-Infinity)-(b.projection??-Infinity))*dir);
+  }
   return arr;
 }
 
-function renderPlayers(){ const cfg = SPORT_CONFIGS[state.detectedSport]; const body=document.getElementById('playerTableBody'); body.innerHTML = filteredPlayers().map(p=>{ const rowClass = p.status==='expected'? 'row-expected' : (p.status==='possible'? 'row-possible' : 'row-unexpected'); return `<tr class="${rowClass}">
+function updateSortIndicators(){
+  const map={ proj:'thProj', salary:'thSalary' };
+  Object.entries(map).forEach(([field,id])=>{
+    const th=document.getElementById(id);
+    if(!th) return;
+    const label=field==='proj'?'Proj':'Salary';
+    if(state.sort.field===field){ th.innerHTML=label+(state.sort.dir==='asc'?' ▲':' ▼'); th.classList.add('active'); }
+    else { th.innerHTML=label; th.classList.remove('active'); }
+  });
+}
+
+function sortBy(field){
+  if(state.sort.field===field){ state.sort.dir = state.sort.dir==='asc'?'desc':'asc'; }
+  else { state.sort.field=field; state.sort.dir='desc'; }
+  renderPlayers();
+}
+
+function renderPlayers(){ updateSortIndicators(); const cfg = SPORT_CONFIGS[state.detectedSport]; const body=document.getElementById('playerTableBody'); body.innerHTML = filteredPlayers().map(p=>{ const rowClass = p.status==='expected'? 'row-expected' : (p.status==='possible'? 'row-possible' : 'row-unexpected'); return `<tr class="${rowClass}">
   <td><input type="checkbox" ${p.selected?'checked':''} onchange="toggleSelected('${p.id}')" /></td>
   <td><input type="checkbox" ${p.captain?'checked':''} ${!usesCaptains(state.detectedSport, state.contestType)?'disabled':''} onchange="toggleCaptain('${p.id}')" /></td>
   <td>${esc(p.name)}</td>
@@ -790,7 +806,8 @@ document.getElementById('startOver').addEventListener('click',()=>{ state.player
 document.getElementById('searchPlayers').addEventListener('input',renderPlayers);
 document.getElementById('positionFilter').addEventListener('change',renderPlayers);
 document.getElementById('teamFilter').addEventListener('change',renderPlayers);
-document.getElementById('salarySort').addEventListener('change',renderPlayers);
+document.getElementById('thProj').addEventListener('click',()=>sortBy('proj'));
+document.getElementById('thSalary').addEventListener('click',()=>sortBy('salary'));
 
 document.getElementById('importProj').addEventListener('click',()=> document.getElementById('projInput').click());
 document.getElementById('projInput').addEventListener('change',e=>{ if(e.target.files.length) importProjections(e.target.files[0]); });
