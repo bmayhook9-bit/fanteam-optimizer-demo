@@ -2,19 +2,23 @@
   "name": "fanteam-optimizer-demo",
   "version": "1.0.0",
   "description": "FanTeam Optimiser TOol",
-  "main": "server/server.js",
+  "main": "server/server.cjs",
   "scripts": {
-    "test": "node tests/buildDisplayName.test.js",
-    "start": "node server/server.js"
+    "test": "node tests/buildDisplayName.test.cjs",
+    "start": "node server/server.cjs",
+    "build": "vite build"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "dependencies": {
     "bcrypt": "^6.0.0",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "vite": "^7.1.5"
   }
 }

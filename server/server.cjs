@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const jwt = require('jsonwebtoken');
-const authRoutes = require('./routes/auth');
+const authRoutes = require('./routes/auth.cjs');
 
 const app = express();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
