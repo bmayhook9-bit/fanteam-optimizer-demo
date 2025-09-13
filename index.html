@@ -67,6 +67,7 @@ label{display:block;margin:6px 0 4px;color:#aab2cd;font-size:12px}
 .toast{position:fixed;top:16px;right:16px;background:var(--panel);border:1px solid #1b2131;padding:12px 14px;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.3);z-index:1000;max-width:320px}
 .toast.success{border-color:var(--success);background:rgba(47,224,137,.08)}
 .toast.error{border-color:var(--err);background:rgba(255,107,107,.08)}
+.toast.warn{border-color:var(--warn);background:rgba(255,184,108,.08)}
 .helper{font-size:12px;color:#aab2cd}
 .badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #2a3552;background:#0f1726;border-radius:999px;padding:4px 8px;font-size:11px;color:#c9d5f5}
 hr.sep{border:none;border-top:1px solid #1b2131;margin:12px 0}
@@ -625,15 +626,26 @@ function generateLineupsMaxSpend(){
     }
   };
 
-  let round=0;
-  while (out.length<N && round<N*10){
-    const cap = caps[Math.floor(Math.random()*caps.length)];
-    tryBuild(cap);
-    round++;
+  const MAX_ATTEMPTS = N * caps.length * 50;
+  let attempts = 0;
+
+  for (const cap of caps){
+    while (out.length < N && attempts < MAX_ATTEMPTS){
+      const before = out.length;
+      tryBuild(cap);
+      attempts++;
+      if (out.length > before && out.length < N){
+        shuffle(pool);
+      }
+    }
+    if (out.length >= N || attempts >= MAX_ATTEMPTS) break;
   }
 
   if (!out.length) throw new Error('No valid lineups; lower Min or raise Max salary.');
-  return out;
+  if (out.length < N){
+    showToast(`Generated ${out.length}/${N} lineups after ${attempts} attempts. Consider adjusting salary limits or captain pool.`, 'warn');
+  }
+  return { lineups: out, attempts };
 }
 
 function setDynamicCapDefaults(){
@@ -745,9 +757,13 @@ document.getElementById('confirmContest').addEventListener('click',()=>{
 // Generate
 document.getElementById('generateBtn').addEventListener('click', () => {
   try {
-    state.lineups = generateLineupsMaxSpend(); // ← use max-spend
+    const res = generateLineupsMaxSpend(); // ← use max-spend
+    state.lineups = res.lineups;
     renderLineups();
-    showToast(`Generated ${state.lineups.length} lineups!`, 'success');
+    const N = +document.getElementById('lineupCount').value || 20;
+    if (state.lineups.length >= N) {
+      showToast(`Generated ${state.lineups.length} lineups!`, 'success');
+    }
   } catch (err) {
     showToast(err.message, 'error');
   }
