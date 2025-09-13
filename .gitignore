@@ -1,5 +1,10 @@
 node_modules/
 dist/
 server/users.db
-
-dist/
+.env
+.env.local
+.env.*
+!*.example
+coverage/
+*.log
+.DS_Store
