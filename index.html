@@ -27,6 +27,7 @@ small.mono{font-family:ui-monospace,Menlo,Consolas,monospace;color:#9fb2dc}
 .upload-zone{border:2px dashed #344155;border-radius:12px;padding:40px 24px;margin:16px 0;cursor:pointer;transition:all .2s;background:rgba(26,36,56,.25)}
 .upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:rgba(47,224,137,.08)}
 .upload-zone.has-file{border-color:var(--success);background:rgba(47,224,137,.1)}
+.upload-zone.disabled{opacity:.5;pointer-events:none}
 .upload-icon{font-size:40px;margin-bottom:10px;color:var(--accent);text-align:center}
 .upload-text{text-align:center}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid #24314d;background:#10182a;color:#e8ecf6;padding:10px 16px;border-radius:8px;cursor:pointer;font-size:14px;transition:all .15s;text-decoration:none;font-weight:600}
@@ -60,6 +61,7 @@ label{display:block;margin:6px 0 4px;color:#aab2cd;font-size:12px}
 .table{width:100%;border-collapse:collapse;font-size:12px}
 .table th,.table td{padding:6px 8px;border-bottom:1px solid #20283a;text-align:left}
 .table th{position:sticky;top:0;background:#0f1524;z-index:1;color:#c8d2ef;font-weight:600;font-size:11px}
+.sortable{cursor:pointer}
 .row-expected{background:rgba(47,224,137,.06);border-left:3px solid var(--success)}
 .row-possible{background:rgba(255,184,108,.06);border-left:3px solid var(--warn)}
 .row-unexpected{background:rgba(255,107,107,.06);border-left:3px solid var(--err)}
@@ -67,6 +69,7 @@ label{display:block;margin:6px 0 4px;color:#aab2cd;font-size:12px}
 .toast{position:fixed;top:16px;right:16px;background:var(--panel);border:1px solid #1b2131;padding:12px 14px;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.3);z-index:1000;max-width:320px}
 .toast.success{border-color:var(--success);background:rgba(47,224,137,.08)}
 .toast.error{border-color:var(--err);background:rgba(255,107,107,.08)}
+.toast.warn{border-color:var(--warn);background:rgba(255,184,108,.08)}
 .helper{font-size:12px;color:#aab2cd}
 .badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #2a3552;background:#0f1726;border-radius:999px;padding:4px 8px;font-size:11px;color:#c9d5f5}
 hr.sep{border:none;border-top:1px solid #1b2131;margin:12px 0}
@@ -76,6 +79,10 @@ hr.sep{border:none;border-top:1px solid #1b2131;margin:12px 0}
 <header>
   <h1>FanTeam DFS Optimizer — MVP</h1>
   <div class="subtitle">European-focused • Transparent algorithms • Multi-sport • FanTeam-ready</div>
+  <div style="margin-top:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+    <button class="btn" id="loginBtn">Login</button>
+    <div id="userStatus" class="badge">Tier: FREE</div>
+  </div>
 </header>
 
 <div class="container">
@@ -204,11 +211,6 @@ hr.sep{border:none;border-top:1px solid #1b2131;margin:12px 0}
       <input id="searchPlayers" type="text" placeholder="Search by name..." style="max-width:180px" />
       <select id="positionFilter" style="max-width:120px"><option value="">All positions</option></select>
       <select id="teamFilter" style="max-width:120px"><option value="">All teams</option></select>
-      <select id="salarySort" style="max-width:130px">
-        <option value="">Sort salary</option>
-        <option value="asc">Salary ↑</option>
-        <option value="desc">Salary ↓</option>
-      </select>
     </div>
     <div class="btn-group" style="margin-bottom:8px">
       <button class="btn" id="selectAll">Select all</button>
@@ -228,8 +230,8 @@ hr.sep{border:none;border-top:1px solid #1b2131;margin:12px 0}
             <th>Player</th>
             <th>Pos</th>
             <th>Team</th>
-            <th>Proj</th>
-            <th>Salary</th>
+            <th data-sort="proj" class="sortable">Proj</th>
+            <th data-sort="salary" class="sortable">Salary</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -280,14 +282,14 @@ const DEMO_ROTATION = ['nfl_full','nfl_show','fb_full','fb_show','f1_full','golf
 let demoIndex = -1;
 
 // Sport config (FanTeam-aligned)
-const SPORT_CONFIGS = {
-  nfl:{ name:'NFL', icon:'🏈', lineupSize:9, positions:['QUARTERBACK','RUNNING_BACK','WIDE_RECEIVER','TIGHT_END','DST'], salaryRange:[49500,50000], currency:'$', fullSlateSize:846, showdownSize:52 },
+ const SPORT_CONFIGS = {
+  nfl:{ name:'NFL', icon:'🏈', lineupSize:9, positions:['QUARTERBACK','RUNNING_BACK','WIDE_RECEIVER','TIGHT_END','DST'], salaryRange:[118,120], currency:'£', fullSlateSize:846, showdownSize:52 },
   football:{ name:'Football/Soccer', icon:'⚽', lineupSize:6, positions:['GOALKEEPER','DEFENDER','MIDFIELDER','FORWARD'], salaryRange:[98,100], currency:'£', fullSlateSize:414, showdownSize:30 },
-  golf:{ name:'Golf', icon:'🏌️', lineupSize:6, positions:['PLAYER'], salaryRange:[98,100], currency:'$', fullSlateSize:69, showdownSize:69 },
-  f1:{ name:'Formula 1', icon:'🏎️', lineupSize:6, positions:['DRIVER','CONSTRUCTOR'], salaryRange:[98,102], currency:'£', fullSlateSize:34, showdownSize:34 }
-};
+  golf:{ name:'Golf', icon:'🏌️', lineupSize:6, positions:['PLAYER'], salaryRange:[98,100], currency:'£', fullSlateSize:69, showdownSize:69 },
+  f1:{ name:'Formula 1', icon:'🏎️', lineupSize:6, positions:['DRIVER','CONSTRUCTOR'], salaryRange:[100,102], currency:'£', fullSlateSize:34, showdownSize:34 }
+ };
 
-const state = { currentStep:1, players:[], lineups:[], detectedSport:'nfl', contestType:'full-slate', currentDemoSport:'nfl', datasetMeta:{ tournament:'', eventName:'' }, isDemo:false, statusFilter:'' };
+ const state = { currentStep:1, players:[], lineups:[], detectedSport:'nfl', contestType:'full-slate', currentDemoSport:'nfl', datasetMeta:{ tournament:'', eventName:'' }, isDemo:false, statusFilter:'', userTier:'FREE', jwt:'', sort:{field:'',dir:''} };
 
 // -------------------- (Optional legacy synthetic demo, unused) --------------------
 // retained for future offline fallback
@@ -320,6 +322,9 @@ function buildDisplayName(row, cols){
   const f = cols.firstCol!==-1?   (row[cols.firstCol]  ||'').trim() : '';
   const l = cols.lastCol!==-1?    (row[cols.lastCol]   ||'').trim() : '';
   let name = d || (f && l ? `${f} ${l}` : (l || f));
+  if(d && l && !d.includes(' ') && !d.toLowerCase().includes(l.toLowerCase()) && !looksNumericish(l)){
+    name = `${d} ${l}`;
+  }
   if(!name || looksNumericish(name)){
     if(f && !looksNumericish(f)) name = f;
     if(l && !looksNumericish(l)) name = name ? `${name} ${l}` : l;
@@ -420,6 +425,7 @@ async function importCSV(file){
 
 async function importProjections(file){
   try {
+    if(state.userTier==='FREE'){ showToast('Projection import requires a paid account','error'); return; }
     const text = await file.text();
     const rows = parseCSV(text);
     if(rows.length<2) throw new Error('Projection CSV needs header and data');
@@ -492,15 +498,17 @@ function deriveFilters(){
   teamSel.innerHTML = '<option value="">All teams</option>';
   const teams=[...new Set(state.players.map(p=>p.team).filter(Boolean))].sort();
   teams.forEach(team=>{ const o=document.createElement('option'); o.value=team; o.textContent=team; teamSel.appendChild(o); });
-  document.getElementById('salarySort').value='';
   state.statusFilter='';
+  state.sort={field:'',dir:''};
+  document.querySelectorAll('th.sortable').forEach(el=>{
+    el.textContent = el.textContent.replace(/ ▲| ▼/,'');
+  });
 }
 
 function filteredPlayers(){
   const q=document.getElementById('searchPlayers').value.toLowerCase();
   const pf=document.getElementById('positionFilter').value;
   const tf=document.getElementById('teamFilter').value;
-  const sf=document.getElementById('salarySort').value;
   const status=state.statusFilter;
   let arr = state.players.filter(p=>{
     const s=!q || p.name.toLowerCase().includes(q);
@@ -509,8 +517,13 @@ function filteredPlayers(){
     const st=!status || p.status===status;
     return s && m && t && st;
   });
-  if(sf==='asc') arr.sort((a,b)=>a.salary-b.salary);
-  else if(sf==='desc') arr.sort((a,b)=>b.salary-a.salary);
+  if(state.sort.field){
+    arr.sort((a,b)=>{
+      const va = state.sort.field==='salary'? a.salary : (a.projection||0);
+      const vb = state.sort.field==='salary'? b.salary : (b.projection||0);
+      return state.sort.dir==='asc'? va-vb : vb-va;
+    });
+  }
   return arr;
 }
 
@@ -625,13 +638,17 @@ function generateLineupsMaxSpend(){
     }
   };
 
-  let round=0;
-  while (out.length<N && round<N*10){
-    const cap = caps[Math.floor(Math.random()*caps.length)];
-    tryBuild(cap);
-    round++;
+  let attempt=0;
+  while(out.length < N && attempt < N*100){
+    for(const cap of shuffle(caps)){
+      tryBuild(cap);
+      if(out.length>=N) break;
+    }
+    attempt++;
   }
-
+  if(out.length < N){
+    showToast(`Only generated ${out.length} of ${N} lineups. Try expanding pool or salary range.`, 'warn');
+  }
   if (!out.length) throw new Error('No valid lineups; lower Min or raise Max salary.');
   return out;
 }
@@ -661,6 +678,7 @@ fileInput.addEventListener('change',e=>{ if(e.target.files.length) processFile(e
 
 async function processFile(file) {
   try {
+    if(state.userTier==='FREE'){ showToast('Uploading requires a paid account','error'); return; }
     const players = await importCSV(file);
     state.players = players;
     state.detectedSport = detectSportFromCSV(players);
@@ -705,6 +723,24 @@ function syncContestSelection(){
   [optFull,optShow].forEach(x=>x.classList.remove('selected'));
   (state.contestType==='showdown'?optShow:optFull).classList.add('selected');
 }
+document.getElementById('sportSelector').addEventListener('change', async e => {
+  try {
+    state.detectedSport = e.target.value;
+    if(state.isDemo){
+      const desired = state.contestType;
+      const key = demoKeyFor(state.detectedSport, desired) || demoKeyFor(state.detectedSport,'full-slate');
+      if(key){
+        const demo = await loadDemoCsv(key);
+        state.players = demo.players;
+        state.contestType = demo.contest;
+        state.currentDemoSport = demo.sport;
+        state.datasetMeta = { tournament: demo.tournament, eventName: demo.eventName };
+      }
+    }
+    updateDetection();
+    syncContestSelection();
+  } catch(err){ showToast(err.message,'error'); }
+});
 document.getElementById('confirmSport').addEventListener('click', async () => {
   try {
     state.detectedSport = document.getElementById('sportSelector').value;
@@ -763,10 +799,53 @@ document.getElementById('startOver').addEventListener('click',()=>{ state.player
 document.getElementById('searchPlayers').addEventListener('input',renderPlayers);
 document.getElementById('positionFilter').addEventListener('change',renderPlayers);
 document.getElementById('teamFilter').addEventListener('change',renderPlayers);
-document.getElementById('salarySort').addEventListener('change',renderPlayers);
 
-document.getElementById('importProj').addEventListener('click',()=> document.getElementById('projInput').click());
+document.getElementById('importProj').addEventListener('click',()=>{
+  if(state.userTier==='FREE'){ showToast('Projection import requires a paid account','error'); return; }
+  document.getElementById('projInput').click();
+});
 document.getElementById('projInput').addEventListener('change',e=>{ if(e.target.files.length) importProjections(e.target.files[0]); });
+
+document.querySelectorAll('th.sortable').forEach(th=>{
+  th.addEventListener('click',()=>{
+    const field = th.dataset.sort;
+    const dir = (state.sort.field===field && state.sort.dir==='asc') ? 'desc' : 'asc';
+    state.sort = { field, dir };
+    document.querySelectorAll('th.sortable').forEach(el=>{
+      el.textContent = el.textContent.replace(/ ▲| ▼/,'');
+    });
+    th.textContent = th.textContent.replace(/ ▲| ▼/,'') + (dir==='asc'?' ▲':' ▼');
+    renderPlayers();
+  });
+});
+
+function updateTierUI(){
+  document.getElementById('userStatus').textContent = `Tier: ${state.userTier}`;
+  if(state.userTier==='FREE'){
+    document.getElementById('uploadZone').classList.add('disabled');
+  } else {
+    document.getElementById('uploadZone').classList.remove('disabled');
+  }
+}
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const email = prompt('Email');
+  const password = prompt('Password');
+  if(!email || !password) return;
+  try {
+    const res = await fetch('/auth/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email, password })
+    });
+    if(!res.ok) throw new Error('Login failed');
+    const data = await res.json();
+    state.jwt = data.token;
+    const payload = JSON.parse(atob(data.token.split('.')[1]));
+    state.userTier = payload.tier || 'FREE';
+    updateTierUI();
+    showToast('Logged in','success');
+  } catch(err){ showToast(err.message,'error'); }
+});
+updateTierUI();
 
 // Expose for checkboxes
 window.toggleSelected = id => { const p=state.players.find(x=>x.id===id); if(!p) return; p.selected=!p.selected; if(!p.selected) p.captain=false; updateStats(); renderPlayers(); };
