@@ -25,19 +25,19 @@ function buildDisplayName(row, cols) {
 }
 
 describe('buildDisplayName', () => {
-  it('uses display column when full name provided', () => {
+  it('display column already has full name', () => {
     const row = ['', 'Alan Shearer', '', ''];
     const cols = { displayCol: 1, firstCol: 2, lastCol: 3 };
     expect(buildDisplayName(row, cols)).toBe('Alan Shearer');
   });
 
-  it('appends last name if display column lacks surname', () => {
+  it('display column only given name, last name available', () => {
     const row = ['', 'Tom', 'Tom', 'Brady'];
     const cols = { displayCol: 1, firstCol: 2, lastCol: 3 };
     expect(buildDisplayName(row, cols)).toBe('Tom Brady');
   });
 
-  it('falls back to first and last when display absent', () => {
+  it('no display column, use first + last', () => {
     const row = ['', '', 'Jane', 'Doe'];
     const cols = { displayCol: -1, firstCol: 2, lastCol: 3 };
     expect(buildDisplayName(row, cols)).toBe('Jane Doe');
