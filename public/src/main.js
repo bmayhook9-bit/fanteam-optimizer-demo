@@ -3,14 +3,14 @@ import { buildDisplayName, looksNumericish } from '../../src/utils/displayName.j
 
 // -------------------- CONFIG --------------------
 
-// Real demo CSV datasets served from demo via relative paths
+// Real demo CSV datasets moved to tests/fixtures and referenced via relative paths
 const DEMO_CSVS = {
-  nfl_full: { label:'NFL — Full slate', sport:'nfl', contest:'full-slate', tournament:'Tournament 1008839 (413 players)', eventName:'NFL Example Slate', url:'demo/1008839_players_20250906222543.csv' },
-  nfl_show: { label:'NFL — Showdown', sport:'nfl', contest:'showdown', tournament:'Tournament 1009037 (33 players)', eventName:'NFL Showdown (Single Game)', url:'demo/1009037_players_20250908102649.csv' },
-  fb_full:  { label:'Football — Full slate', sport:'football', contest:'full-slate', tournament:'Tournament 1009899 (845 players)', eventName:'Champions League Night', url:'demo/1009899_players_20250908161603.csv' },
-  fb_show:  { label:'Football — Showdown', sport:'football', contest:'showdown', tournament:'Tournament 1010808 (51 players)', eventName:'Football Showdown', url:'demo/1010808_players_20250908161619.csv' },
-  f1_full:  { label:'F1 — Race weekend', sport:'f1', contest:'full-slate', tournament:'Tournament 1008665 (29 players)', eventName:'F1 Race Weekend', url:'demo/1008665_players_20250906172857.csv' },
-  golf_full:{ label:'Golf — PGA tournament', sport:'golf', contest:'full-slate', tournament:'Tournament 1000000 (585 players)', eventName:'PGA Tournament', url:'demo/1000000_players_20250815093906.csv' }
+  nfl_full: { label:'NFL — Full slate', sport:'nfl', contest:'full-slate', tournament:'Tournament 1008839 (413 players)', eventName:'NFL Example Slate', url:'../tests/fixtures/demo/1008839_players_20250906222543.csv' },
+  nfl_show: { label:'NFL — Showdown', sport:'nfl', contest:'showdown', tournament:'Tournament 1009037 (33 players)', eventName:'NFL Showdown (Single Game)', url:'../tests/fixtures/demo/1009037_players_20250908102649.csv' },
+  fb_full:  { label:'Football — Full slate', sport:'football', contest:'full-slate', tournament:'Tournament 1009899 (845 players)', eventName:'Champions League Night', url:'../tests/fixtures/demo/1009899_players_20250908161603.csv' },
+  fb_show:  { label:'Football — Showdown', sport:'football', contest:'showdown', tournament:'Tournament 1010808 (51 players)', eventName:'Football Showdown', url:'../tests/fixtures/demo/1010808_players_20250908161619.csv' },
+  f1_full:  { label:'F1 — Race weekend', sport:'f1', contest:'full-slate', tournament:'Tournament 1008665 (29 players)', eventName:'F1 Race Weekend', url:'../tests/fixtures/demo/1008665_players_20250906172857.csv' },
+  golf_full:{ label:'Golf — PGA tournament', sport:'golf', contest:'full-slate', tournament:'Tournament 1000000 (585 players)', eventName:'PGA Tournament', url:'../tests/fixtures/demo/1000000_players_20250815093906.csv' }
 };
 
 // Rotation order for the demo button (array of KEYS)
