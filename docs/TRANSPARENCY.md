@@ -1,8 +1,19 @@
-# Transparency
+# Algorithm Transparency
 
-In the interest of transparency and accountability, below is information about this contribution.
+This document explains how projections are produced and adjusted. It will evolve with community feedback and validation.
 
-- **Context:** This change was produced by an AI language model as part of an evaluation.
-- **Process:** The model was given task instructions and a development environment, and it made a best effort to apply changes and run tests.
-- **Limitations:** The model may make mistakes or produce incomplete solutions.
-- **Reproduction:** See the testing section of the accompanying pull request for commands to reproduce the results.
+## NFL Conversion Pipeline (MVP “gold thread”)
+1. Normalize raw stats to per-game/per-snap units (fill missing conservatively).
+2. Apply FanTeam scoring via pure functions (`src/features/optimizer/math/scoring.ts`).
+3. Variance model to estimate floor/ceiling from mean (simple assumption).
+4. Calibration using versioned factors in `calibration.json` via `calibrateProjection()`.
+
+## Assumptions & Limitations
+- Variance is a placeholder; refine with holdout evaluation.
+- Ownership not modeled yet; proxy fields may come later.
+- Factors sport-specific; current validation is **NFL only**.
+
+## Transparency & Reproducibility
+- Math is pure, typed, and commented.
+- Constants are named & explained in code comments.
+- Calibration factors are versioned JSON (reviewable & revertible).
