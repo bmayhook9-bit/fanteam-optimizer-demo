@@ -11,12 +11,13 @@ const app = express();
 const JWT_SECRET = env.JWT_SECRET;
 const PORT = Number(env.PORT) || 3000;
 const CLIENT_ORIGIN = env.CLIENT_ORIGIN;
-
-app.use(
-  cors({
-    origin: CLIENT_ORIGIN,
-  }),
-);
+if (CLIENT_ORIGIN) {
+  app.use(
+    cors({
+      origin: CLIENT_ORIGIN,
+    }),
+  );
+}
 app.use(express.json());
 app.use(rateLimit({ windowMs: 60_000, max: 60 }));
 app.use(express.static(path.join(process.cwd(), 'dist')));
