@@ -1,0 +1,18 @@
+interface DbUser {
+  id: number;
+  username: string;
+  password: string;
+  tier: string;
+}
+
+declare const UserModel: {
+  createUser(
+    username: string,
+    password: string,
+    tier?: string,
+  ): Promise<Omit<DbUser, 'password'>>;
+  findByUsername(username: string): Promise<DbUser | undefined>;
+  close(): void;
+};
+
+export default UserModel;
