@@ -9,15 +9,10 @@ import { env } from './lib/env';
 import type { JwtPayload, VerifyErrors } from 'jsonwebtoken';
 
 const app = express();
-const JWT_SECRET = env.JWT_SECRET;
-const PORT = env.PORT;
+const { JWT_SECRET, PORT, CLIENT_ORIGIN } = env;
 
 app.use(helmet());
-if (env.CLIENT_ORIGIN) {
-  app.use(cors({ origin: env.CLIENT_ORIGIN }));
-} else {
-  app.use(cors({ origin: false }));
-}
+app.use(cors(CLIENT_ORIGIN ? { origin: CLIENT_ORIGIN } : undefined));
 app.use(express.json());
 app.use(rateLimit({ windowMs: 60_000, max: 60 }));
 app.use(express.static(path.join(process.cwd(), 'dist')));

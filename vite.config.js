@@ -6,6 +6,7 @@ export default defineConfig({
     outDir: '../dist',
     emptyOutDir: false,
   },
+  envDir: '../',
   test: {
     root: './',
     include: ['tests/**/*.{test,spec}.js'],

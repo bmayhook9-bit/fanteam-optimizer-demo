@@ -30,6 +30,9 @@
   "keywords": [],
   "license": "ISC",
   "main": "dist/server/server.js",
+  "engines": {
+    "node": ">=18"
+  },
   "name": "fanteam-optimizer-demo",
   "scripts": {
     "build": "vite build && tsc",
