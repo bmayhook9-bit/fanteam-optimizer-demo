@@ -1,4 +1,4 @@
-interface DbUser {
+export interface DbUser {
   id: number;
   username: string;
   password: string;
@@ -12,7 +12,6 @@ declare const UserModel: {
     tier?: string,
   ): Promise<Omit<DbUser, 'password'>>;
   findByUsername(username: string): Promise<DbUser | undefined>;
-  close(): void;
 };
 
 export default UserModel;
