@@ -2,7 +2,7 @@ module.exports = {
   root: true,
   env: {
     node: true,
-    es2020: true,
+    es2021: true,
   },
   parser: '@typescript-eslint/parser',
   parserOptions: {
@@ -14,5 +14,4 @@ module.exports = {
     'plugin:@typescript-eslint/recommended',
     'plugin:prettier/recommended',
   ],
-  ignorePatterns: ['dist/'],
 };
