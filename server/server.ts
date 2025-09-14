@@ -2,6 +2,8 @@ import express from 'express';
 import path from 'path';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
+import cors from 'cors';
 import authRoutes from './routes/auth';
 import { env } from './lib/env';
 import type { JwtPayload, VerifyErrors } from 'jsonwebtoken';
@@ -10,6 +12,8 @@ const app = express();
 const JWT_SECRET = env.JWT_SECRET;
 const PORT = Number(env.PORT) || 3000;
 
+app.use(helmet());
+app.use(cors({ origin: env.CLIENT_ORIGIN ?? true }));
 app.use(express.json());
 app.use(rateLimit({ windowMs: 60_000, max: 60 }));
 app.use(express.static(path.join(process.cwd(), 'dist')));
