@@ -49,4 +49,8 @@ app.get('/api/protected', authenticate, (req: RequestWithUser, res) => {
   res.json({ message: `Hello ${user.username}!`, tier: user.tier });
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+if (process.env.VERCEL !== '1') {
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
+
+export default app;

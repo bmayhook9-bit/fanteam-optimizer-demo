@@ -6,9 +6,10 @@
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "outDir": "dist"
   },
-  "include": ["src", "server", "tests"],
+  "include": ["src", "server", "api", "tests"],
   "exclude": ["node_modules", "dist"]
 }
 

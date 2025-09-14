@@ -6,3 +6,4 @@ In the interest of transparency and accountability, below is information about t
 - **Process:** The model was given task instructions and a development environment, and it made a best effort to apply changes and run tests.
 - **Limitations:** The model may make mistakes or produce incomplete solutions.
 - **Reproduction:** See the testing section of the accompanying pull request for commands to reproduce the results.
+- **Commands:** `npm install --include=dev`, `npm run lint`, `npm run typecheck`, `npm test -- --run`, `npm run build`.
