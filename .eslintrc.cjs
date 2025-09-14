@@ -1,15 +1,12 @@
+/** ESLint v8 config (classic) */
 module.exports = {
   root: true,
-  env: {
-    node: true,
-    es2020: true,
-  },
+  env: { node: true, es2020: true, browser: true },
   parser: '@typescript-eslint/parser',
   parserOptions: {
     sourceType: 'module',
-    ecmaFeatures: {
-      jsx: true,
-    },
+    ecmaVersion: 2022,
+    ecmaFeatures: { jsx: true },
   },
   plugins: ['@typescript-eslint', 'prettier'],
   extends: [
@@ -17,5 +14,27 @@ module.exports = {
     'plugin:@typescript-eslint/recommended',
     'plugin:prettier/recommended',
   ],
-  ignorePatterns: ['dist/'],
+  settings: {
+    react: { version: 'detect' },
+  },
+  overrides: [
+    {
+      files: ['**/*.tsx', '**/*.ts'],
+      parser: '@typescript-eslint/parser',
+    },
+    {
+      files: ['tests/**/*.ts', 'tests/**/*.tsx'],
+      env: { jest: false, node: true, browser: true },
+    },
+  ],
+  ignorePatterns: [
+    'dist/',
+    'public/',
+    'ui/',
+    'server/models/User.js',
+    '**/*.d.ts',
+  ],
+  rules: {
+    'prettier/prettier': 'error',
+  },
 };
