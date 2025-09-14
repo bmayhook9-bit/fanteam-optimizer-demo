@@ -13,7 +13,6 @@ app.use(express.static(path.join(process.cwd(), 'dist')));
 
 app.use('/api/auth', authRoutes);
 
-// Only start a listener when run directly (keeps tests clean)
 if (require.main === module) {
   app.listen(PORT, () => {
     // eslint-disable-next-line no-console

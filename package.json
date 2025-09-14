@@ -20,11 +20,11 @@
     "express": "^5.1.0",
     "express-rate-limit": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
-    "sqlite3": "^5.1.7",
-    "zod": "^4.1.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.23.0"
+    "react-router-dom": "^6.23.0",
+    "sqlite3": "^5.1.7",
+    "zod": "^4.1.8"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.8.0",

@@ -14,27 +14,11 @@ module.exports = {
     'plugin:@typescript-eslint/recommended',
     'plugin:prettier/recommended',
   ],
-  settings: {
-    react: { version: 'detect' },
-  },
+  settings: { react: { version: 'detect' } },
   overrides: [
-    {
-      files: ['**/*.tsx', '**/*.ts'],
-      parser: '@typescript-eslint/parser',
-    },
-    {
-      files: ['tests/**/*.ts', 'tests/**/*.tsx'],
-      env: { jest: false, node: true, browser: true },
-    },
+    { files: ['**/*.tsx', '**/*.ts'], parser: '@typescript-eslint/parser' },
+    { files: ['tests/**/*.{ts,tsx}'], env: { node: true, browser: true } }
   ],
-  ignorePatterns: [
-    'dist/',
-    'public/',
-    'ui/',
-    'server/models/User.js',
-    '**/*.d.ts',
-  ],
-  rules: {
-    'prettier/prettier': 'error',
-  },
+  ignorePatterns: ['dist/', 'public/', 'ui/', 'server/models/User.js', '**/*.d.ts'],
+  rules: { 'prettier/prettier': 'error' },
 };
