@@ -8,6 +8,7 @@ import type { JwtPayload, VerifyErrors } from 'jsonwebtoken';
 
 const app = express();
 const JWT_SECRET = env.JWT_SECRET;
+const PORT = Number(env.PORT) || 3000;
 
 app.use(express.json());
 app.use(rateLimit({ windowMs: 60_000, max: 60 }));
@@ -40,5 +41,4 @@ app.get('/api/protected', authenticate, (req: RequestWithUser, res) => {
   res.json({ message: `Hello ${user.username}!`, tier: user.tier });
 });
 
-const PORT = Number(env.PORT) || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
