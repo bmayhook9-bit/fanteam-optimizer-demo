@@ -1,20 +1,5 @@
 {
-  "name": "fanteam-optimizer-demo",
-  "version": "1.0.0",
-  "description": "FanTeam Optimizer Tool",
-  "main": "dist/server/server.js",
-  "scripts": {
-    "test": "vitest",
-    "start": "node dist/server/server.js",
-    "lint": "eslint \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern",
-    "format": "prettier --write .",
-    "typecheck": "tsc --noEmit",
-    "build": "tsc"
-  },
-  "keywords": [],
   "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "bcrypt": "^6.0.0",
     "express": "^5.1.0",
@@ -23,6 +8,7 @@
     "sqlite3": "^5.1.7",
     "zod": "^4.1.8"
   },
+  "description": "FanTeam Optimizer Tool",
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.3",
@@ -36,5 +22,19 @@
     "prettier": "^3.2.5",
     "typescript": "^5.4.5",
     "vitest": "^3.2.4"
-  }
+  },
+  "keywords": [],
+  "license": "ISC",
+  "main": "dist/server/server.js",
+  "name": "fanteam-optimizer-demo",
+  "scripts": {
+    "build": "tsc",
+    "format": "prettier --write .",
+    "lint": "eslint \"**/*.{ts,tsx}\" --no-error-on-unmatched-pattern",
+    "start": "node dist/server/server.js",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "commonjs",
+  "version": "1.0.0"
 }
