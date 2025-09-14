@@ -10,5 +10,6 @@ server will reject cross-origin requests.
 
 ```bash
 export JWT_SECRET=your-secret
+# export CLIENT_ORIGIN=http://localhost:5173 # optional
 npm start
 ```
