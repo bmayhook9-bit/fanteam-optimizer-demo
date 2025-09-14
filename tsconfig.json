@@ -8,7 +8,7 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "include": ["src", "server", "tests"],
+  "include": ["src", "server", "tests", "api"],
   "exclude": ["node_modules", "dist"]
 }
 
