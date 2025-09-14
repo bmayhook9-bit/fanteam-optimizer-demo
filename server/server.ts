@@ -9,7 +9,7 @@ import type { JwtPayload, VerifyErrors } from 'jsonwebtoken';
 
 const app = express();
 const JWT_SECRET = env.JWT_SECRET;
-const PORT = Number(env.PORT) || 3000;
+const PORT = env.PORT;
 const CLIENT_ORIGIN = env.CLIENT_ORIGIN;
 if (CLIENT_ORIGIN) {
   app.use(
