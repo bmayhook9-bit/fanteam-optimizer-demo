@@ -1,12 +1,12 @@
 import { z } from 'zod';
 
-const envSchema = z.object({
+export const EnvSchema = z.object({
   JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
   PORT: z.coerce.number().int().default(3000),
-  CLIENT_ORIGIN: z.string().optional(),
+  CLIENT_ORIGIN: z.string().url().optional().or(z.literal('')),
 });
 
-const _env = envSchema.safeParse(process.env);
+const _env = EnvSchema.safeParse(process.env);
 
 if (!_env.success) {
   console.error(
