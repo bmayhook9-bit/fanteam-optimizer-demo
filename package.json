@@ -46,6 +46,7 @@
     "prettier": "^3.2.5",
     "supertest": "^6.3.4",
     "typescript": "^5.4.5",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "@vercel/node": "^3.2.8"
   }
 }
