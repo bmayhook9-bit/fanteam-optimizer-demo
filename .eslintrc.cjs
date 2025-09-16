@@ -19,12 +19,6 @@ module.exports = {
     { files: ['**/*.tsx', '**/*.ts'], parser: '@typescript-eslint/parser' },
     { files: ['tests/**/*.{ts,tsx}'], env: { node: true, browser: true } },
   ],
-  ignorePatterns: [
-    'dist/',
-    'public/',
-    'ui/',
-    'server/models/User.js',
-    '**/*.d.ts',
-  ],
+  ignorePatterns: ['dist/', 'public/', 'ui/', 'server/models/User.js', '**/*.d.ts'],
   rules: { 'prettier/prettier': 'error' },
 };
