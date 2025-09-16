@@ -1,8 +1,8 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite';
 
 export default defineConfig({
-  root: '.',
-  test: {
-    include: ['tests/**/*.{test,spec}.{js,ts}'],
+  root: 'public',
+  build: {
+    outDir: '../dist',
   },
 });
