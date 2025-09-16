@@ -1,0 +1,31 @@
+Tournament,PlayerID,Name,FName,Club,Lineup,Position,Price
+1008665,176985,Hamilton,Lewis,FER,confirmed,player,20
+1008665,176986,Russell,George,MRC,confirmed,player,23
+1008665,176987,Verstappen,Max,RBR,confirmed,player,27
+1008665,176989,Stroll,Lance,AMR,confirmed,player,5
+1008665,176991,Leclerc,Charles,FER,confirmed,player,24
+1008665,176992,Alonso,Fernando,AMR,confirmed,player,17
+1008665,176993,Norris,Lando,MCL,confirmed,player,29
+1008665,176994,Sainz,Carlos,WIL,confirmed,player,15
+1008665,176995,Piastri,Oscar,MCL,confirmed,player,28
+1008665,176996,Colapinto,Franco,ALP,confirmed,player,4
+1008665,176997,Tsunoda,Yuki,RBR,confirmed,player,16
+1008665,176999,Albon,Alex,WIL,confirmed,player,12
+1008665,207249,Gasly,Pierre,ALP,confirmed,player,7
+1008665,207250,Hulkenberg,Nico,KSA,confirmed,player,11
+1008665,207252,Lawson,Liam,RB,confirmed,player,6
+1008665,602784,Kick Sauber,,KSA,confirmed,ctor,4.5
+1008665,602785,Racing Bulls,,RB,confirmed,ctor,4
+1008665,602786,Alpine,,ALP,confirmed,ctor,4
+1008665,602787,Aston Martin,,AMR,confirmed,ctor,4.5
+1008665,602788,Ferrari,,FER,confirmed,ctor,5.5
+1008665,602789,Haas,,HAS,confirmed,ctor,4
+1008665,602790,McLaren,,MCL,confirmed,ctor,8
+1008665,602791,Mercedes,,MRC,confirmed,ctor,5.5
+1008665,602792,Red Bull,,RBR,confirmed,ctor,6.5
+1008665,602793,Williams,,WIL,confirmed,ctor,4
+1008665,4077431,Antonelli,Kimi,MRC,confirmed,player,22
+1008665,4077432,Hadjar,Isack,RB,confirmed,player,9
+1008665,4077433,Ocon,Esteban,HAS,confirmed,player,8
+1008665,4077434,Bearman,Oliver,HAS,confirmed,player,13
+1008665,4077435,Bortoleto,Gabriel,KSA,confirmed,player,18

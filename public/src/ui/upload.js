@@ -1,6 +1,6 @@
 import { showToast } from './toast.js';
 
-export function initUpload({ state, importCSV, detectSportFromCSV, updateDetection, setStep, loadDemoCsv, demoKeyFor, DEMO_CSVS, DEMO_ROTATION }) {
+export function initUpload({ state, importCSV, detectSportFromCSV, updateDetection, setStep, loadDemoCsv, demoKeyFor, DEMO_CSVS, DEMO_ROTATION, applyDemoToState }) {
   const uploadZone = document.getElementById('uploadZone');
   const fileInput = document.getElementById('fileInput');
   const demoBtn = document.getElementById('demoBtn');
@@ -38,13 +38,7 @@ export function initUpload({ state, importCSV, detectSportFromCSV, updateDetecti
         demoIndex = (demoIndex + 1) % DEMO_ROTATION.length;
         const key = DEMO_ROTATION[demoIndex];
         const demo = await loadDemoCsv(key);
-        state.players = demo.players;
-        state.detectedSport = demo.sport;
-        state.currentDemoSport = demo.sport;
-        state.contestType = demo.contest;
-        state.datasetMeta = { tournament: demo.tournament, eventName: demo.eventName };
-        state.isDemo = true;
-        updateDetection();
+        applyDemoToState(demo);
         showToast(`Demo loaded: ${DEMO_CSVS[key].label} (${demo.players.length} players)`);
         setStep(2);
       } catch (err) { showToast(err.message, 'error'); }

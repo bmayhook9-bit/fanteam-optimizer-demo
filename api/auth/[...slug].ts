@@ -23,8 +23,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const action = (slug[0] || '').toLowerCase();
 
   // Vercel may pass body as string when not JSON; normalize
-  const rawBody = (req as any).body; // Vercel typing is loose here
-  const body = typeof rawBody === 'string' ? JSON.parse(rawBody || '{}') : (rawBody || {});
+  const rawBody = req.body;
+  const body =
+    typeof rawBody === 'string' ? JSON.parse(rawBody || '{}') : rawBody || {};
 
   try {
     if (req.method === 'POST' && action === 'signup') {
