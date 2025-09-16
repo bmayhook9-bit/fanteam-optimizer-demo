@@ -13,7 +13,8 @@ export type SportKey =
 
 export function demoUrlFor(sport: SportKey): string | undefined {
   // default location for shipped static assets
-  return `/demo/${sport}/players.csv`;
+  const slug = sport === 'soccer' ? 'football' : sport;
+  return `/demo/${slug}/players.csv`;
 }
 
 export async function fetchDemoCsv(sport: SportKey): Promise<string> {
