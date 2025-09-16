@@ -5,12 +5,12 @@ import { buildDisplayName, looksNumericish } from '../../src/utils/displayName.j
 
 // Real demo CSV datasets moved to tests/fixtures and referenced via relative paths
 const DEMO_CSVS = {
-  nfl_full: { label:'NFL — Full slate', sport:'nfl', contest:'full-slate', tournament:'Tournament 1008839 (413 players)', eventName:'NFL Example Slate', url:'../tests/fixtures/demo/1008839_players_20250906222543.csv' },
-  nfl_show: { label:'NFL — Showdown', sport:'nfl', contest:'showdown', tournament:'Tournament 1009037 (33 players)', eventName:'NFL Showdown (Single Game)', url:'../tests/fixtures/demo/1009037_players_20250908102649.csv' },
-  fb_full:  { label:'Football — Full slate', sport:'football', contest:'full-slate', tournament:'Tournament 1009899 (845 players)', eventName:'Champions League Night', url:'../tests/fixtures/demo/1009899_players_20250908161603.csv' },
-  fb_show:  { label:'Football — Showdown', sport:'football', contest:'showdown', tournament:'Tournament 1010808 (51 players)', eventName:'Football Showdown', url:'../tests/fixtures/demo/1010808_players_20250908161619.csv' },
-  f1_full:  { label:'F1 — Race weekend', sport:'f1', contest:'full-slate', tournament:'Tournament 1008665 (29 players)', eventName:'F1 Race Weekend', url:'../tests/fixtures/demo/1008665_players_20250906172857.csv' },
-  golf_full:{ label:'Golf — PGA tournament', sport:'golf', contest:'full-slate', tournament:'Tournament 1000000 (585 players)', eventName:'PGA Tournament', url:'../tests/fixtures/demo/1000000_players_20250815093906.csv' }
+  nfl_full: { label:'NFL — Full slate', sport:'nfl', contest:'full-slate', tournament:'Tournament 1008839 (413 players)', eventName:'NFL Example Slate', url:'/demo/nfl/players.csv' },
+  nfl_show: { label:'NFL — Showdown', sport:'nfl', contest:'showdown', tournament:'Tournament 1009037 (33 players)', eventName:'NFL Showdown (Single Game)', url:'/demo/nfl/showdown.csv' },
+  fb_full:  { label:'Football — Full slate', sport:'football', contest:'full-slate', tournament:'Tournament 1009899 (845 players)', eventName:'Champions League Night', url:'/demo/football/players.csv' },
+  fb_show:  { label:'Football — Showdown', sport:'football', contest:'showdown', tournament:'Tournament 1010808 (51 players)', eventName:'Football Showdown', url:'/demo/football/showdown.csv' },
+  f1_full:  { label:'F1 — Race weekend', sport:'f1', contest:'full-slate', tournament:'Tournament 1008665 (29 players)', eventName:'F1 Race Weekend', url:'/demo/f1/players.csv' },
+  golf_full:{ label:'Golf — PGA tournament', sport:'golf', contest:'full-slate', tournament:'Tournament 1000000 (585 players)', eventName:'PGA Tournament', url:'/demo/golf/players.csv' }
 };
 
 // Rotation order for the demo button (array of KEYS)
@@ -169,7 +169,7 @@ async function loadDemoCsv(key){
   state.isDemo = true;
   const preset = DEMO_CSVS[key];
   if(!preset) throw new Error(`Unknown demo key: ${key}`);
-  const res = await fetch(preset.url);
+  const res = await fetch(preset.url, { cache:'no-store' });
   if(!res.ok) throw new Error(`Failed to fetch ${preset.url}`);
   const text = await res.text();
 
@@ -183,6 +183,69 @@ async function loadDemoCsv(key){
   const players = rowsToPlayers(rows, cols);
 
   return { players, sport:preset.sport, contest:preset.contest, tournament:preset.tournament, eventName:preset.eventName };
+}
+
+function applyDemoToState(demo){
+  state.players = demo.players;
+  state.detectedSport = demo.sport;
+  state.currentDemoSport = demo.sport;
+  state.contestType = demo.contest;
+  state.datasetMeta = { tournament: demo.tournament, eventName: demo.eventName };
+  state.isDemo = true;
+  state.lineups = [];
+  state.statusFilter = '';
+  state.sort = { field:'', dir:'asc' };
+  const uploadZone = document.getElementById('uploadZone');
+  if(uploadZone) uploadZone.classList.add('has-file');
+  updateDetection();
+  deriveFilters();
+  updateStats();
+  refreshCaptainButtons();
+  renderPlayers();
+  renderLineups();
+  if(state.currentStep>=4) setDynamicCapDefaults();
+}
+
+function resetToStart(){
+  state.players = [];
+  state.lineups = [];
+  state.detectedSport = 'nfl';
+  state.contestType = 'full-slate';
+  state.currentDemoSport = 'nfl';
+  state.datasetMeta = { tournament:'', eventName:'' };
+  state.isDemo = false;
+  state.statusFilter = '';
+  state.sort = { field:'', dir:'asc' };
+  const uploadZone = document.getElementById('uploadZone');
+  if(uploadZone) uploadZone.classList.remove('has-file');
+  const sportSelector = document.getElementById('sportSelector');
+  if(sportSelector) sportSelector.value = 'nfl';
+  const search = document.getElementById('searchPlayers');
+  if(search) search.value = '';
+  const minSalary = document.getElementById('minSalary');
+  const maxSalary = document.getElementById('maxSalary');
+  if(minSalary) minSalary.value = '';
+  if(maxSalary) maxSalary.value = '';
+  const positionFilter = document.getElementById('positionFilter');
+  const teamFilter = document.getElementById('teamFilter');
+  if(positionFilter) positionFilter.value = '';
+  if(teamFilter) teamFilter.value = '';
+  const projInput = document.getElementById('projInput');
+  if(projInput) projInput.value = '';
+  const downloadBtn = document.getElementById('downloadBtn');
+  if(downloadBtn) downloadBtn.setAttribute('disabled','');
+  const statSport = document.getElementById('statSport');
+  const statContest = document.getElementById('statContest');
+  if(statSport) statSport.textContent = '—';
+  if(statContest) statContest.textContent = '—';
+  updateDetection();
+  deriveFilters();
+  updateStats();
+  refreshCaptainButtons();
+  renderPlayers();
+  renderLineups();
+  if(typeof syncContestSelection==='function') syncContestSelection();
+  setStep(1);
 }
 
 function demoKeyFor(sport, contest) {
@@ -323,9 +386,11 @@ initUpload({
   loadDemoCsv,
   demoKeyFor,
   DEMO_CSVS,
-  DEMO_ROTATION
+  DEMO_ROTATION,
+  applyDemoToState
 });
 
+document.getElementById('resetFlow').addEventListener('click', resetToStart);
 document.getElementById('backToUpload').addEventListener('click',()=>setStep(1));
 const optFull=document.getElementById('optFull');
 const optShow=document.getElementById('optShow');
@@ -334,36 +399,43 @@ function syncContestSelection(){
   (state.contestType==='showdown'?optShow:optFull).classList.add('selected');
 }
 document.getElementById('sportSelector').addEventListener('change', async e => {
-  state.detectedSport = e.target.value;
-  if(!state.isDemo) return;
+  const nextSport = e.target.value;
+  const wasEmpty = state.players.length===0;
+  state.detectedSport = nextSport;
+  if(!wasEmpty && !state.isDemo) return;
   try {
     const desired = state.contestType;
-    const key = demoKeyFor(state.detectedSport, desired) || demoKeyFor(state.detectedSport, 'full-slate');
-    if(key){
-      const demo = await loadDemoCsv(key);
-      state.players = demo.players;
-      state.contestType = demo.contest;
-      state.datasetMeta = { tournament: demo.tournament, eventName: demo.eventName };
-      state.currentDemoSport = demo.sport;
-      updateDetection();
-      syncContestSelection();
+    const key = demoKeyFor(nextSport, desired) || demoKeyFor(nextSport, 'full-slate');
+    if(!key){
+      if(wasEmpty) showToast('No demo data available for this sport yet', 'error');
+      return;
+    }
+    const demo = await loadDemoCsv(key);
+    applyDemoToState(demo);
+    syncContestSelection();
+    if(wasEmpty){
+      const cfg = SPORT_CONFIGS[nextSport];
+      if(state.currentStep<2) setStep(2);
+      showToast(`Demo data loaded for ${cfg?.name||nextSport}`, 'success');
     }
   } catch(err){ showToast(err.message,'error'); }
 });
 document.getElementById('confirmSport').addEventListener('click', async () => {
   try {
-    state.detectedSport = document.getElementById('sportSelector').value;
-    if (state.isDemo) {
-      const desired = state.contestType;
-      const key = demoKeyFor(state.detectedSport, desired) || demoKeyFor(state.detectedSport, 'full-slate');
-      if (key) {
-        const demo = await loadDemoCsv(key);
-        state.players = demo.players;
-        state.contestType = demo.contest;
-        state.currentDemoSport = demo.sport;
-        state.datasetMeta = { tournament: demo.tournament, eventName: demo.eventName };
-        updateDetection();
+    const chosenSport = document.getElementById('sportSelector').value;
+    const wasEmpty = state.players.length===0;
+    state.detectedSport = chosenSport;
+    const desired = state.contestType;
+    const key = demoKeyFor(chosenSport, desired) || demoKeyFor(chosenSport, 'full-slate');
+    if((wasEmpty || state.isDemo) && key){
+      const demo = await loadDemoCsv(key);
+      applyDemoToState(demo);
+      if(wasEmpty){
+        const cfg = SPORT_CONFIGS[chosenSport];
+        showToast(`Demo data loaded for ${cfg?.name||chosenSport}`, 'success');
       }
+    } else if(wasEmpty && !key){
+      throw new Error('No demo data available for this sport yet');
     }
     syncContestSelection();
     setStep(3);
@@ -408,7 +480,7 @@ document.getElementById('selectNone').addEventListener('click',()=>{ state.playe
 document.getElementById('selectExpected').addEventListener('click',()=>{ state.players.forEach(p=>{ p.selected = (p.status==='expected'); if(!p.selected) p.captain=false; }); state.statusFilter='expected'; updateStats(); renderPlayers(); });
 document.getElementById('captainAll').addEventListener('click',()=>{ if(!usesCaptains(state.detectedSport, state.contestType)) return; state.players.filter(p=>p.selected).forEach(p=>p.captain=true); updateStats(); renderPlayers(); });
 document.getElementById('clearResults').addEventListener('click',()=>{ state.lineups=[]; renderLineups(); });
-document.getElementById('startOver').addEventListener('click',()=>{ state.players=[]; state.lineups=[]; state.currentDemoSport='nfl'; state.datasetMeta={tournament:'',eventName:''}; state.isDemo=false; document.getElementById('downloadBtn').setAttribute('disabled',''); document.getElementById('uploadZone').classList.remove('has-file'); setStep(1); });
+document.getElementById('startOver').addEventListener('click', resetToStart);
 document.getElementById('searchPlayers').addEventListener('input',renderPlayers);
 document.getElementById('positionFilter').addEventListener('change',renderPlayers);
 document.getElementById('teamFilter').addEventListener('change',renderPlayers);
@@ -417,6 +489,21 @@ document.getElementById('thSalary').addEventListener('click',()=>sortBy('salary'
 
 document.getElementById('importProj').addEventListener('click',()=> document.getElementById('projInput').click());
 document.getElementById('projInput').addEventListener('change',e=>{ if(e.target.files.length) importProjections(e.target.files[0]); });
+
+document.getElementById('loadDemo').addEventListener('click', async () => {
+  try {
+    const desired = state.contestType;
+    const key = demoKeyFor(state.detectedSport, desired) || demoKeyFor(state.detectedSport, 'full-slate');
+    if(!key) throw new Error('No demo data available for this sport yet');
+    const demo = await loadDemoCsv(key);
+    applyDemoToState(demo);
+    syncContestSelection();
+    if(state.currentStep>=4) { setStep(4); setDynamicCapDefaults(); }
+    else if(state.currentStep<2) setStep(2);
+    const cfg = SPORT_CONFIGS[state.detectedSport];
+    showToast(`Demo data loaded for ${cfg?.name||state.detectedSport}`, 'success');
+  } catch(err){ showToast(err.message,'error'); }
+});
 
 // Expose for checkboxes
 window.toggleSelected = id => { const p=state.players.find(x=>x.id===id); if(!p) return; p.selected=!p.selected; if(!p.selected) p.captain=false; updateStats(); renderPlayers(); };

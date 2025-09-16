@@ -25,11 +25,14 @@
 
 <div class="container">
   <!-- Progress -->
-  <div class="progress-steps">
-    <div class="progress-step active" id="ps1"><div class="step-number active" id="sn1">1</div><span>Upload</span></div>
-    <div class="progress-step" id="ps2"><div class="step-number" id="sn2">2</div><span>Confirm</span></div>
-    <div class="progress-step" id="ps3"><div class="step-number" id="sn3">3</div><span>Contest</span></div>
-    <div class="progress-step" id="ps4"><div class="step-number" id="sn4">4</div><span>Optimize</span></div>
+  <div class="progress-header">
+    <div class="progress-steps">
+      <div class="progress-step active" id="ps1"><div class="step-number active" id="sn1">1</div><span>Upload</span></div>
+      <div class="progress-step" id="ps2"><div class="step-number" id="sn2">2</div><span>Confirm</span></div>
+      <div class="progress-step" id="ps3"><div class="step-number" id="sn3">3</div><span>Contest</span></div>
+      <div class="progress-step" id="ps4"><div class="step-number" id="sn4">4</div><span>Optimize</span></div>
+    </div>
+    <button class="btn small" id="resetFlow" type="button">↺ Back to start</button>
   </div>
 
   <!-- Step 1: Upload -->
@@ -156,6 +159,7 @@
       <button class="btn" id="selectExpected">Expected only</button>
       <button class="btn" id="captainAll">Captain all</button>
       <button class="btn" id="importProj">Import projections</button>
+      <button class="btn" id="loadDemo">Load demo data</button>
     </div>
     <input type="file" id="projInput" accept=".csv" hidden />
 

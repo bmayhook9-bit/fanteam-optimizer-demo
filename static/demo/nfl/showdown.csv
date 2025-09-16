@@ -1,0 +1,35 @@
+Tournament,PlayerID,Name,FName,Club,Lineup,Position,Price
+1009037,4352647,Thielen,Adam,MIN,expected,wide_receiver,10.3
+1009037,4352659,Bagent,Tyson,CHI,unexpected,quarterback,12.7
+1009037,4352660,Williams,Caleb,CHI,expected,quarterback,15.1
+1009037,4352662,Keenum,Case,CHI,unexpected,quarterback,12.6
+1009037,4352665,Swift,D'Andre,CHI,expected,running_back,12.3
+1009037,4352666,Monangai,Kyle,CHI,expected,running_back,6.2
+1009037,4352667,Johnson,Roschon,CHI,possible,running_back,7.9
+1009037,4352668,Wheeler,Ian,CHI,refuted,running_back,4
+1009037,4352672,Zaccheaus,Olamide,CHI,expected,wide_receiver,6.1
+1009037,4352673,Duvernay,Devin,CHI,unexpected,wide_receiver,4
+1009037,4352675,Odunze,Rome,CHI,expected,wide_receiver,11.6
+1009037,4352676,Burden III,Luther,CHI,expected,wide_receiver,6
+1009037,4352679,Walker,Jahdae,CHI,unexpected,wide_receiver,4
+1009037,4352680,Moore,DJ,CHI,expected,wide_receiver,13.2
+1009037,4352681,DEF/ST Bears,,CHI,expected,defense_special,7.1
+1009037,4352683,Loveland,Colston,CHI,expected,tight_end,9.5
+1009037,4352685,Kmet,Cole,CHI,expected,tight_end,7.6
+1009037,4352686,Smythe,Durham,CHI,unexpected,tight_end,4.3
+1009037,4353109,Brosmer,Max,MIN,unexpected,quarterback,13
+1009037,4353112,McCarthy,J.J.,MIN,expected,quarterback,15.5
+1009037,4353114,Mason,Jordan,MIN,expected,running_back,11.3
+1009037,4353115,Ham,C.J.,MIN,injured,running_back,4
+1009037,4353116,Chandler,Ty,MIN,expected,running_back,4.8
+1009037,4353117,Jones,Aaron,MIN,expected,running_back,13.3
+1009037,4353118,Scott,Zavier,MIN,injured,running_back,4
+1009037,4353119,Felton,Tai,MIN,expected,wide_receiver,5.1
+1009037,4353120,Nailor,Jalen,MIN,expected,wide_receiver,7.8
+1009037,4353121,Price,Myles,MIN,unexpected,wide_receiver,4
+1009037,4353127,Jefferson,Justin,MIN,expected,wide_receiver,16.9
+1009037,4353132,Hockenson,T.J.,MIN,expected,tight_end,11.5
+1009037,4353133,DEF/ST Vikings,,MIN,expected,defense_special,8.2
+1009037,4353134,Yurosek,Ben,MIN,unexpected,tight_end,4.3
+1009037,4353139,Oliver,Josh,MIN,expected,tight_end,5.9
+1009037,4383864,Wentz,Carson,MIN,unexpected,quarterback,13.1
